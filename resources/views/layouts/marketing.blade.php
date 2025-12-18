@@ -12,7 +12,7 @@
 </head>
 <body class="bg-gradient-to-br from-[#f6fbf3] via-white to-[#eef4ff] text-[#0f1b2b] antialiased">
     <div x-data="{ open: false }" class="min-h-screen flex flex-col">
-        <header class="bg-white/80 backdrop-blur border-b border-[#d9e8d2] sticky top-0 z-20 shadow-[0_6px_30px_-20px_rgba(0,0,0,0.25)]">
+        <header class="bg-white backdrop-blur border-b border-[#d9e8d2] sticky top-0 z-20 shadow-[0_6px_30px_-20px_rgba(0,0,0,0.25)]">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between py-4">
                     <a href="/" class="flex items-center gap-3 group">
