@@ -1,14 +1,22 @@
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-labelledby="title desc">
   <title id="title">HappyTek mark</title>
-  <desc id="desc">Rounded gradient square with an H monogram.</desc>
+  <desc id="desc">Rounded badge with HT monogram in green and blue.</desc>
   <defs>
-    <linearGradient id="htMarkGradient" x1="6" y1="4" x2="58" y2="60" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#6EB43F" />
-      <stop offset="1" stop-color="#1F65D1" />
+    <linearGradient id="split" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#5ba32c" />
+      <stop offset="55%" stop-color="#5ba32c" />
+      <stop offset="55%" stop-color="#1f65d1" />
+      <stop offset="100%" stop-color="#1f65d1" />
     </linearGradient>
+    <filter id="badgeShadow" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#0e2f62" flood-opacity="0.25" />
+    </filter>
   </defs>
-  <rect x="6" y="4" width="52" height="52" rx="14" fill="url(#htMarkGradient)" />
-  <path d="M22 19V45" stroke="#F6FBF3" stroke-width="4.2" stroke-linecap="round" />
-  <path d="M42 19V45" stroke="#F6FBF3" stroke-width="4.2" stroke-linecap="round" />
-  <path d="M22 30H42" stroke="#E7F2FF" stroke-width="4.2" stroke-linecap="round" />
+  <g filter="url(#badgeShadow)">
+    <rect x="8" y="8" width="104" height="104" rx="30" fill="white" opacity="0.96" />
+    <rect x="12" y="12" width="96" height="96" rx="28" fill="url(#split)" />
+    <path d="M34 86V36h12v17h16V36h12v50H62V66H46v20H34z" fill="#f4f9ff" />
+    <path d="M78 36h12v50H78z" fill="#f4f9ff" />
+    <path d="M82 68c7.8 0 14-4.8 14-10.8S89.8 46.4 82 46.4" fill="none" stroke="#f4f9ff" stroke-width="8" stroke-linecap="round" />
+  </g>
 </svg>
