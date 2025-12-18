@@ -10,14 +10,14 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body class="bg-white text-[#0f1b2b] antialiased">
+<body class="bg-white/80 backdrop-blur border-b border-[#d9e8d2] sticky top-0 z-20 shadow-[0_6px_30px_-20px_rgba(0,0,0,0.25)] text-[#0f1b2b] antialiased">
     <div x-data="{ open: false }" class="min-h-screen flex flex-col">
         <header class="bg-white border-b border-[#d9e8d2] sticky top-0 z-20">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between py-4 bg-white">
                     <a href="/" class="flex items-center gap-3 group">
                         
-                        <img src="{{ asset('images/happytek_logo_white.svg') }}" alt="HappyTek" class="hidden sm:block h-16 w-auto drop-shadow-[0_12px_28px_rgba(19,49,92,0.15)]" loading="lazy">
+                        <img src="{{ asset('images/happytek_logo_trans.svg') }}" alt="HappyTek" class="hidden sm:block h-16 w-auto drop-shadow-[0_12px_28px_rgba(19,49,92,0.15)]" loading="lazy">
                         
                     </a>
                     <nav class="hidden md:flex items-center gap-8 text-sm font-medium">
