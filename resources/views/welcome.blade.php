@@ -3,6 +3,32 @@
 @section('title', 'HappyTek — Easily Solved. Remote tech help across Canada')
 
 @section('content')
+@php
+    $serviceGroups = [
+        'Individuals' => [
+            ['name' => 'Fix It Now', 'href' => url('/services/individuals/fix-it-now'), 'description' => 'Live, remote fixes for the device, account, or setting that stopped working.'],
+            ['name' => 'Setups', 'href' => url('/services/individuals/setups'), 'description' => 'New device, email, or streaming setup with settings documented for you.'],
+            ['name' => 'Wi-Fi & Networkables', 'href' => url('/services/individuals/wi-fi-and-networkables'), 'description' => 'Stronger connections, tidy routers, and printers that actually stay online.'],
+            ['name' => 'Security & Passwords', 'href' => url('/services/individuals/security-and-passwords'), 'description' => 'Two-factor, backups, and password resets handled without locking you out.'],
+        ],
+        'Professionals' => [
+            ['name' => 'Brand Launch Support', 'href' => url('/services/professionals/brand-launch-support'), 'description' => 'Domain, email, booking links, and a simple page that looks ready to hire.'],
+            ['name' => 'Migrations', 'href' => url('/services/professionals/migrations'), 'description' => 'Move files, calendars, and inboxes without downtime or lost context.'],
+            ['name' => 'Leads Mgmt & Bookings', 'href' => url('/services/professionals/leads-management-and-bookings'), 'description' => 'Booking links, intake forms, and reminders so prospects never slip.'],
+            ['name' => 'Automations & Efficiency', 'href' => url('/services/professionals/automations-and-efficiency'), 'description' => 'Light automations that reduce copy-paste and keep your solo practice moving.'],
+            ['name' => 'AI Integrations', 'href' => url('/services/professionals/ai-integrations'), 'description' => 'Practical AI add-ons for summaries, email drafts, and searchable notes.'],
+        ],
+        'Small Teams' => [
+            ['name' => 'Onboarding Support', 'href' => url('/services/teams/onboarding-support'), 'description' => 'Day-one checklists, access, and devices set up so new hires ramp quickly.'],
+            ['name' => 'Cloud Migrations', 'href' => url('/services/teams/cloud-migrations'), 'description' => 'Move shared storage, mail, and permissions with clean folders and labels.'],
+            ['name' => 'Shared Info & Collaboration', 'href' => url('/services/teams/shared-info-and-collaboration'), 'description' => 'Calendars, shared inboxes, and channels that everyone can find and use.'],
+            ['name' => 'Tool Consolidation', 'href' => url('/services/teams/tool-consolidation'), 'description' => 'Reduce overlapping apps, merge logins, and keep costs predictable.'],
+            ['name' => 'AI Integrations', 'href' => url('/services/teams/ai-integrations'), 'description' => 'Searchable knowledge, meeting recaps, and safe AI copilots tuned for your work.'],
+            ['name' => 'Project Concierge', 'href' => url('/services/teams/project-concierge'), 'description' => 'A named guide to coordinate tech steps with vendors, clients, and teammates.'],
+        ],
+    ];
+@endphp
+
 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 lg:py-24 space-y-16">
     <section class="grid lg:grid-cols-2 gap-12 items-center">
         <div class="space-y-6">
@@ -54,6 +80,40 @@
                 <p class="font-semibold">Low tech energy? We bring big tech energy.</p>
                 <p class="mt-1">Show us what’s stuck. We’ll steady it, fix it, and hand back control.</p>
             </div>
+        </div>
+    </section>
+
+    <section id="services" class="card-surface border-[#dbe7f8] shadow-md p-8 lg:p-12 space-y-8">
+        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+            <div class="space-y-3 max-w-2xl">
+                <span class="pill">Services</span>
+                <h2 class="text-3xl font-semibold text-[#0f1b2b]">Pick the support that matches how you work.</h2>
+                <p class="text-lg text-[#2b3f54]">Every service has a clear scope, a fast path to resolution, and a direct line back to HappyTek.</p>
+            </div>
+            <a href="/contact" class="btn-primary">Talk to us</a>
+        </div>
+        <div class="space-y-8">
+            @foreach ($serviceGroups as $group => $services)
+                <div class="space-y-4">
+                    <div class="flex items-baseline justify-between">
+                        <h3 class="text-xl font-semibold text-[#0f1b2b]">{{ $group }}</h3>
+                        <a href="/contact" class="text-sm font-semibold text-[#1f65d1] hover:underline">Need help choosing?</a>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        @foreach ($services as $service)
+                            <a href="{{ $service['href'] }}" class="muted-card p-5 hover:border-[#dbe7f8] hover:shadow-md transition group">
+                                <div class="flex items-start gap-3">
+                                    <span class="accent-badge mt-1"></span>
+                                    <div>
+                                        <p class="font-semibold text-[#0f1b2b] group-hover:text-[#1f65d1]">{{ $service['name'] }}</p>
+                                        <p class="mt-1 text-sm text-[#2b3f54]">{{ $service['description'] }}</p>
+                                    </div>
+                                </div>
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            @endforeach
         </div>
     </section>
 

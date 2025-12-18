@@ -77,4 +77,12 @@
         background: linear-gradient(135deg, var(--brand-green), var(--brand-blue));
         box-shadow: 0 0 0 5px color-mix(in srgb, var(--brand-blue) 10%, transparent);
     }
+
+    .dropdown-link {
+        @apply block px-3 py-2 rounded-lg border border-transparent hover:border-[#dbe7f8] hover:bg-[#f6fbf3] text-[#13315c] hover:text-[#0f1b2b] font-semibold;
+    }
+
+    .mobile-dropdown {
+        @apply block px-2 py-1 rounded-md text-[#13315c] hover:text-[#0f1b2b] hover:bg-[#f6fbf3];
+    }
 }
