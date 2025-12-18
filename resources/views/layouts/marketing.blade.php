@@ -10,7 +10,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body class="bg-gradient-to-br from-[#f6fbf3] via-white to-[#eef4ff] text-[#0f1b2b] antialiased">
+<body class="bg-white text-[#0f1b2b] antialiased">
     <div x-data="{ open: false }" class="min-h-screen flex flex-col">
         <header class="bg-white border-b border-[#d9e8d2] sticky top-0 z-20">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
