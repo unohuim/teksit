@@ -6,7 +6,6 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class SuperAdminSeeder extends Seeder
 {
@@ -15,11 +14,11 @@ class SuperAdminSeeder extends Seeder
      */
     public function run(): void
     {
-        $user = User::firstOrCreate(
+        $user = User::updateOrCreate(
             ['email' => 'colquhoun.r@gmail.com'],
             [
                 'name' => 'Rob Colquhoun',
-                'password' => Hash::make(Str::random(16)),
+                'password' => Hash::make('password'),
             ]
         );
 
