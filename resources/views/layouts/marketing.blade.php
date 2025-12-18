@@ -15,9 +15,9 @@
         <header class="bg-white border-b border-[#d9e8d2] sticky top-0 z-20">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between py-1">
-                    <a href="/" class="flex flex-col gap-1 group">
+                    <a href="/" class="flex items-center group">
                         <img src="{{ asset('images/happytek_logo_trans.svg') }}" alt="HappyTek" class="h-12 sm:h-20 md:h-24 lg:h-26 w-auto" loading="lazy">
-                        <span class="text-[11px] sm:text-xs font-medium text-[#2b3f54] leading-tight">Easily Solved.</span>
+                        <span class="ml-2 text-[11px] sm:text-xs font-medium text-[#2b3f54] opacity-70 leading-tight">Easily Solved.</span>
                     </a>
                     <nav class="hidden md:flex items-center gap-8 text-sm font-medium">
                         <a href="/" class="text-[#254776] hover:text-[#1f65d1] transition">Home</a>
