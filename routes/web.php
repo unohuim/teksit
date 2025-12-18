@@ -6,8 +6,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome');
 Route::view('/pricing', 'pricing');
-Route::view('/contact', 'contact');
-Route::post('/contact', [RequestController::class, 'store'])->name('requests.store');
+Route::view('/contact', 'contact')->name('contact');
+Route::post('/contact/request', [RequestController::class, 'storeDraft'])->name('requests.store');
+Route::post('/contact/path', [RequestController::class, 'choosePath'])->name('requests.choose-path');
 
 Route::get('/fix-now', [CalendlyController::class, 'showFixNow'])->name('fix-now');
 Route::get('/auth/calendly/redirect', [CalendlyController::class, 'redirectToCalendly'])->name('calendly.redirect');

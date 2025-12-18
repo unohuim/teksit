@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'HappyTek — Easily Solved. Remote tech help that feels finished')</title>
     <meta name="description" content="HappyTek keeps everyday tech handled for Canadians with low tech energy, founders, and small teams. Clear pricing, reliable support, and outcomes that are easily solved.">
     <link rel="preconnect" href="https://fonts.bunny.net">

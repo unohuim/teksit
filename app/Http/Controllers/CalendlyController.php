@@ -107,6 +107,7 @@ class CalendlyController extends Controller
         $event = Arr::get($payload, 'event', []);
         $eventType = Arr::get($payload, 'event_type', []);
         $scheduledEvent = is_array($event) ? $event : [];
+        $tracking = Arr::get($payload, 'tracking', []);
 
         $eventUuid = $scheduledEvent['uuid']
             ?? (isset($scheduledEvent['uri']) ? Str::afterLast($scheduledEvent['uri'], '/') : null)
@@ -127,24 +128,36 @@ class CalendlyController extends Controller
             ?? Arr::get($scheduledEvent, 'event_type.name')
             ?? Arr::get($payload, 'scheduled_event.event_type.name');
 
-        $serviceRequest = ServiceRequest::updateOrCreate(
-            [
-                'calendly_event_uuid' => $eventUuid,
-            ],
-            [
-                'name' => $invitee['name'] ?? 'Calendly Guest',
-                'email' => $invitee['email'] ?? null,
-                'service_category' => 'Fix It Now',
-                'service_name' => 'Immediate Support',
-                'description' => 'Calendly booking',
-                'path' => 'fix_now',
-                'scheduled_at' => $scheduledAt,
-                'duration' => $duration,
-                'event_type_name' => $eventTypeName,
-            ]
-        );
+        $requestId = null;
 
-        if ($serviceRequest->wasRecentlyCreated || $serviceRequest->wasChanged()) {
+        if (is_array($tracking)) {
+            $requestId = Arr::get($tracking, 'utm_content');
+        }
+
+        if (is_string($requestId) && ! ctype_digit((string) $requestId)) {
+            $requestId = preg_replace('/\D/', '', $requestId) ?: null;
+        }
+
+        $serviceRequest = $requestId
+            ? ServiceRequest::find($requestId)
+            : null;
+
+        if (! $serviceRequest || ! in_array($serviceRequest->status, ['draft', 'submitted'])) {
+            return response()->json(['ignored' => true], Response::HTTP_ACCEPTED);
+        }
+
+        $serviceRequest->forceFill([
+            'name' => $invitee['name'] ?? $serviceRequest->name,
+            'email' => $invitee['email'] ?? $serviceRequest->email,
+            'path' => 'fix_now',
+            'status' => 'booked',
+            'calendly_event_uuid' => $eventUuid,
+            'scheduled_at' => $scheduledAt,
+            'duration' => $duration,
+            'event_type_name' => $eventTypeName,
+        ])->save();
+
+        if ($serviceRequest->wasChanged()) {
             if ($serviceRequest->email) {
                 Mail::to($serviceRequest->email)->send(new FixItNowCustomerConfirmation($serviceRequest));
             }

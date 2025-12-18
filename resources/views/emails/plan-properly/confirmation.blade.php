@@ -5,12 +5,13 @@
 </head>
 <body>
     <p>Hi {{ $firstName }},</p>
-    <p>Thanks for reaching out to plan things properly. We’ve received your request and no payment is required yet.</p>
-    <p>What happens next:</p>
+    <p>Thanks for reaching out. We’ve received your request and will review the scope.</p>
+    <p>Next steps:</p>
     <ul>
-        <li>We’ll review your scope and follow up with any clarifying questions</li>
-        <li>We’ll prepare a quote for your approval</li>
-        <li>Once approved and paid, we’ll open a work order and schedule delivery</li>
+        <li>We may follow up with clarifying questions</li>
+        <li>You’ll receive a clear quote for approval</li>
+        <li>No payment is required yet</li>
     </ul>
+    <p>— HappyTek<br>Easily Solved.</p>
 </body>
 </html>
