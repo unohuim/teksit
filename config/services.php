@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'calendly' => [
+        'client_id' => env('CALENDLY_CLIENT_ID'),
+        'client_secret' => env('CALENDLY_CLIENT_SECRET'),
+        'webhook_secret' => env('CALENDLY_WEBHOOK_SECRET'),
+        'event_type_url' => env('CALENDLY_EVENT_TYPE_URL'),
+    ],
+
 ];

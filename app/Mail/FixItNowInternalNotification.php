@@ -20,7 +20,7 @@ class FixItNowInternalNotification extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'New Fix It Now request',
+            subject: 'Fix It Now session booked',
         );
     }
 
