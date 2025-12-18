@@ -11,9 +11,16 @@
             <p class="text-lg text-[#2b3f54]">A short note is enough. We’ll review, reply with the plan, and send a Calendly link to book.</p>
         </div>
 
+        @if (session('status'))
+            <div class="max-w-3xl mx-auto p-4 rounded-lg bg-green-50 border border-green-200 text-green-800">
+                {{ session('status') }}
+            </div>
+        @endif
+
         <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
             <div class="lg:col-span-2 muted-card shadow-md p-6 lg:p-8 space-y-6">
-                <form action="#" method="POST" class="space-y-5">
+                <form action="{{ route('requests.store') }}" method="POST" class="space-y-5">
+                    @csrf
                     <div class="grid sm:grid-cols-2 gap-4">
                         <div class="space-y-2">
                             <label for="name" class="block text-sm font-medium text-[#0f1b2b]">Name</label>
@@ -51,41 +58,67 @@
                     </div>
 
                     <div class="space-y-2">
-                        <label for="service" class="block text-sm font-medium text-[#0f1b2b]">What can we help with?</label>
+                        <p class="block text-sm font-medium text-[#0f1b2b]">How should we help?</p>
+                        <div class="grid sm:grid-cols-2 gap-3">
+                            <label class="flex items-start gap-3 rounded-xl border border-[#cfe0c5] bg-white px-4 py-3 cursor-pointer hover:border-[#1f65d1]">
+                                <input type="radio" name="path" value="fix_now" class="mt-1" checked>
+                                <span>
+                                    <span class="font-semibold text-[#0f1b2b]">Fix It Now</span>
+                                    <p class="text-sm text-[#2b3f54]">Immediate help, billed hourly after payment.</p>
+                                </span>
+                            </label>
+                            <label class="flex items-start gap-3 rounded-xl border border-[#cfe0c5] bg-white px-4 py-3 cursor-pointer hover:border-[#1f65d1]">
+                                <input type="radio" name="path" value="plan_properly" class="mt-1">
+                                <span>
+                                    <span class="font-semibold text-[#0f1b2b]">Plan It Properly</span>
+                                    <p class="text-sm text-[#2b3f54]">Scoped work with a quote, approval, and payment.</p>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="service_category" class="block text-sm font-medium text-[#0f1b2b]">Service category</label>
                         <select
-                            id="service"
-                            name="service"
+                            id="service_category"
+                            name="service_category"
+                            class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-2 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]"
+                            required
+                        >
+                            <option value="" disabled selected>Select a category</option>
+                            <option value="Individuals">Individuals</option>
+                            <option value="Professionals">Professionals</option>
+                            <option value="Small Teams">Small Teams</option>
+                            <option value="Project Concierge">Project Concierge</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="service_name" class="block text-sm font-medium text-[#0f1b2b]">What can we help with?</label>
+                        <select
+                            id="service_name"
+                            name="service_name"
                             class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-2 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]"
                             required
                         >
                             <option value="" disabled selected>Pick the closest fit</option>
-                            <optgroup label="Individuals">
-                                <option>Fix it Now</option>
-                                <option>Setups</option>
-                                <option>Wi-Fi &amp; Networkables</option>
-                                <option>Security &amp; Passwords</option>
-                            </optgroup>
-                            <optgroup label="Professionals">
-                                <option>Brand Launch Support</option>
-                                <option>Migrations</option>
-                                <option>Leads Mgmt &amp; Bookings</option>
-                                <option>Automations &amp; Efficiency</option>
-                                <option>AI Integrations</option>
-                            </optgroup>
-                            <optgroup label="Small Teams">
-                                <option>Onboarding Support</option>
-                                <option>Cloud Migrations</option>
-                                <option>Shared Info &amp; Collaboration</option>
-                                <option>Tool Consolidation</option>
-                                <option>AI Integrations</option>
-                            </optgroup>
-                            <optgroup label="Project Concierge">
-                                <option>Project Concierge</option>
-                            </optgroup>
-                            <optgroup label="Other">
-                                <option>I just have a question</option>
-                                <option>Not sure — need guidance</option>
-                            </optgroup>
+                            <option>Fix it Now</option>
+                            <option>Setups</option>
+                            <option>Wi-Fi &amp; Networkables</option>
+                            <option>Security &amp; Passwords</option>
+                            <option>Brand Launch Support</option>
+                            <option>Migrations</option>
+                            <option>Leads Mgmt &amp; Bookings</option>
+                            <option>Automations &amp; Efficiency</option>
+                            <option>AI Integrations</option>
+                            <option>Onboarding Support</option>
+                            <option>Cloud Migrations</option>
+                            <option>Shared Info &amp; Collaboration</option>
+                            <option>Tool Consolidation</option>
+                            <option>Project Concierge</option>
+                            <option>I just have a question</option>
+                            <option>Not sure — need guidance</option>
                         </select>
                     </div>
 

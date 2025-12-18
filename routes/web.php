@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\RequestController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome');
 Route::view('/pricing', 'pricing');
 Route::view('/contact', 'contact');
+Route::post('/contact', [RequestController::class, 'store'])->name('requests.store');
 
 Route::prefix('services')->group(function () {
     // Individuals
