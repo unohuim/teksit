@@ -10,22 +10,26 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body class="bg-slate-50 text-slate-900 antialiased">
+<body class="bg-gradient-to-br from-[#f6fbf3] via-white to-[#eef4ff] text-[#0f1b2b] antialiased">
     <div x-data="{ open: false }" class="min-h-screen flex flex-col">
-        <header class="bg-white/90 backdrop-blur border-b border-slate-200/70 sticky top-0 z-20">
+        <header class="bg-white/80 backdrop-blur border-b border-[#d9e8d2] sticky top-0 z-20 shadow-[0_6px_30px_-20px_rgba(0,0,0,0.25)]">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between py-4">
-                    <div class="flex items-center gap-3">
-                        <div class="h-10 w-10 rounded-lg bg-slate-900 text-white flex items-center justify-center font-semibold shadow-sm">H</div>
-                        <a href="/" class="text-xl font-semibold tracking-tight text-slate-900">HappyTek</a>
-                    </div>
+                    <a href="/" class="flex items-center gap-3 group">
+                        <span class="relative inline-flex h-11 w-11">
+                            <img src="{{ asset('images/happytek-mark.svg') }}" alt="HappyTek mark" class="h-11 w-11 drop-shadow-[0_12px_28px_rgba(31,101,209,0.18)]" loading="lazy">
+                            <span class="absolute inset-0 rounded-2xl bg-white/30 opacity-0 transition group-hover:opacity-100"></span>
+                        </span>
+                        <img src="{{ asset('images/happytek-logo-full.svg') }}" alt="HappyTek" class="hidden sm:block h-9 w-auto drop-shadow-[0_12px_28px_rgba(19,49,92,0.15)]" loading="lazy">
+                        <span class="sm:hidden text-xl font-semibold tracking-tight text-[#13315c]">HappyTek</span>
+                    </a>
                     <nav class="hidden md:flex items-center gap-8 text-sm font-medium">
-                        <a href="/" class="text-slate-700 hover:text-slate-900 transition">Home</a>
-                        <a href="/pricing" class="text-slate-700 hover:text-slate-900 transition">Pricing</a>
-                        <a href="/contact" class="text-slate-700 hover:text-slate-900 transition">Contact</a>
-                        <a href="/contact" class="inline-flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-slate-800 transition">Get it fixed</a>
+                        <a href="/" class="text-[#254776] hover:text-[#1f65d1] transition">Home</a>
+                        <a href="/pricing" class="text-[#254776] hover:text-[#1f65d1] transition">Pricing</a>
+                        <a href="/contact" class="text-[#254776] hover:text-[#1f65d1] transition">Contact</a>
+                        <a href="/contact" class="btn-primary">Get it fixed</a>
                     </nav>
-                    <button @click="open = !open" class="md:hidden inline-flex items-center justify-center rounded-md p-2 text-slate-700 hover:bg-slate-100 focus:outline-none" aria-label="Toggle navigation">
+                    <button @click="open = !open" class="md:hidden inline-flex items-center justify-center rounded-md p-2 text-[#254776] hover:bg-[#e8f2ff] focus:outline-none" aria-label="Toggle navigation">
                         <svg x-show="!open" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
@@ -35,12 +39,12 @@
                     </button>
                 </div>
             </div>
-            <div x-show="open" x-transition class="md:hidden border-t border-slate-200 bg-white shadow-sm">
+            <div x-show="open" x-transition class="md:hidden border-t border-[#d9e8d2] bg-white shadow-sm">
                 <div class="px-4 py-3 space-y-2">
-                    <a href="/" class="block text-slate-900 font-semibold">Home</a>
-                    <a href="/pricing" class="block text-slate-900 font-semibold">Pricing</a>
-                    <a href="/contact" class="block text-slate-900 font-semibold">Contact</a>
-                    <a href="/contact" class="inline-flex w-full justify-center bg-slate-900 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-slate-800 transition">Get it fixed</a>
+                    <a href="/" class="block text-[#13315c] font-semibold">Home</a>
+                    <a href="/pricing" class="block text-[#13315c] font-semibold">Pricing</a>
+                    <a href="/contact" class="block text-[#13315c] font-semibold">Contact</a>
+                    <a href="/contact" class="inline-flex w-full justify-center btn-primary">Get it fixed</a>
                 </div>
             </div>
         </header>
@@ -49,13 +53,13 @@
             @yield('content')
         </main>
 
-        <footer class="bg-slate-900 text-slate-100 mt-16">
+        <footer class="bg-gradient-to-br from-[#1f65d1] via-[#164d9c] to-[#0f2f76] text-slate-50 mt-16">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                     <div class="space-y-2 max-w-xl">
                         <p class="text-lg font-semibold">HappyTek — Easily Solved.</p>
-                        <p class="text-sm text-slate-300">Remote tech help that feels finished. Reliable fixes, setup done right, and clear follow-through for low tech energy households, founders, and small teams.</p>
-                        <p class="text-sm text-slate-300">hello@happytek.ca</p>
+                        <p class="text-sm text-slate-100/80">Remote tech help that feels finished. Reliable fixes, setup done right, and clear follow-through for low tech energy households, founders, and small teams.</p>
+                        <p class="text-sm text-slate-100/80">hello@happytek.ca</p>
                     </div>
                     <div class="flex items-center gap-6 text-sm">
                         <a href="/" class="hover:text-white">Home</a>
@@ -63,7 +67,7 @@
                         <a href="/contact" class="hover:text-white">Contact</a>
                     </div>
                 </div>
-                <p class="mt-8 text-sm text-slate-500">© {{ date('Y') }} HappyTek. Remote tech help across Canada.</p>
+                <p class="mt-8 text-sm text-slate-200/80">© {{ date('Y') }} HappyTek. Remote tech help across Canada.</p>
             </div>
         </footer>
     </div>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-labelledby="title desc">
+  <title id="title">HappyTek mark</title>
+  <desc id="desc">Rounded badge with HT monogram in green and blue.</desc>
+  <defs>
+    <linearGradient id="split" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#5ba32c" />
+      <stop offset="55%" stop-color="#5ba32c" />
+      <stop offset="55%" stop-color="#1f65d1" />
+      <stop offset="100%" stop-color="#1f65d1" />
+    </linearGradient>
+    <filter id="badgeShadow" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#0e2f62" flood-opacity="0.25" />
+    </filter>
+  </defs>
+  <g filter="url(#badgeShadow)">
+    <rect x="8" y="8" width="104" height="104" rx="30" fill="white" opacity="0.96" />
+    <rect x="12" y="12" width="96" height="96" rx="28" fill="url(#split)" />
+    <path d="M34 86V36h12v17h16V36h12v50H62V66H46v20H34z" fill="#f4f9ff" />
+    <path d="M78 36h12v50H78z" fill="#f4f9ff" />
+    <path d="M82 68c7.8 0 14-4.8 14-10.8S89.8 46.4 82 46.4" fill="none" stroke="#f4f9ff" stroke-width="8" stroke-linecap="round" />
+  </g>
+</svg>
