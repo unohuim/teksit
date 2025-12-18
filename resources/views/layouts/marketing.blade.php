@@ -11,7 +11,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body class="bg-gradient-to-br from-[#f6fbf3] via-white to-[#eef4ff] backdrop-blur border-b border-[#d9e8d2] sticky top-0 z-20 shadow-[0_6px_30px_-20px_rgba(0,0,0,0.25)] text-[#0f1b2b] antialiased">
-    <div x-data="{ open: false }" class="min-h-screen flex flex-col">
+    <div x-data="{ open: false, servicesOpen: false }" class="min-h-screen flex flex-col">
         <header class="bg-white border-b border-[#d9e8d2] sticky top-0 z-20">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between py-1">
@@ -22,6 +22,46 @@
                     </a>
                     <nav class="hidden md:flex items-center gap-8 text-sm font-medium">
                         <a href="/" class="text-[#254776] hover:text-[#1f65d1] transition">Home</a>
+                        <div class="relative" @mouseleave="servicesOpen = false" @mouseenter="servicesOpen = true" @focusin="servicesOpen = true">
+                            <a href="{{ url('/#services') }}" class="inline-flex items-center gap-1 text-[#254776] hover:text-[#1f65d1] transition focus:outline-none" @focus="servicesOpen = true">
+                                Services
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 9l6 6 6-6" />
+                                </svg>
+                            </a>
+                            <div x-cloak x-show="servicesOpen" x-transition class="absolute left-0 mt-3 w-[520px] bg-white border border-[#d9e8d2] shadow-xl rounded-xl p-4 grid grid-cols-2 gap-4">
+                                <div class="space-y-3">
+                                    <p class="text-xs font-semibold text-[#1f65d1] uppercase">Individuals</p>
+                                    <div class="space-y-2 text-sm">
+                                        <a href="{{ url('/services/individuals/fix-it-now') }}" class="dropdown-link">Fix It Now</a>
+                                        <a href="{{ url('/services/individuals/setups') }}" class="dropdown-link">Setups</a>
+                                        <a href="{{ url('/services/individuals/wi-fi-and-networkables') }}" class="dropdown-link">Wi-Fi &amp; Networkables</a>
+                                        <a href="{{ url('/services/individuals/security-and-passwords') }}" class="dropdown-link">Security &amp; Passwords</a>
+                                    </div>
+                                </div>
+                                <div class="space-y-3">
+                                    <p class="text-xs font-semibold text-[#1f65d1] uppercase">Professionals</p>
+                                    <div class="space-y-2 text-sm">
+                                        <a href="{{ url('/services/professionals/brand-launch-support') }}" class="dropdown-link">Brand Launch Support</a>
+                                        <a href="{{ url('/services/professionals/migrations') }}" class="dropdown-link">Migrations</a>
+                                        <a href="{{ url('/services/professionals/leads-management-and-bookings') }}" class="dropdown-link">Leads Mgmt &amp; Bookings</a>
+                                        <a href="{{ url('/services/professionals/automations-and-efficiency') }}" class="dropdown-link">Automations &amp; Efficiency</a>
+                                        <a href="{{ url('/services/professionals/ai-integrations') }}" class="dropdown-link">AI Integrations</a>
+                                    </div>
+                                </div>
+                                <div class="space-y-3 col-span-2 border-t border-[#e6f0e2] pt-4">
+                                    <p class="text-xs font-semibold text-[#1f65d1] uppercase">Small Teams</p>
+                                    <div class="grid grid-cols-2 gap-2 text-sm">
+                                        <a href="{{ url('/services/teams/onboarding-support') }}" class="dropdown-link">Onboarding Support</a>
+                                        <a href="{{ url('/services/teams/cloud-migrations') }}" class="dropdown-link">Cloud Migrations</a>
+                                        <a href="{{ url('/services/teams/shared-info-and-collaboration') }}" class="dropdown-link">Shared Info &amp; Collaboration</a>
+                                        <a href="{{ url('/services/teams/tool-consolidation') }}" class="dropdown-link">Tool Consolidation</a>
+                                        <a href="{{ url('/services/teams/ai-integrations') }}" class="dropdown-link">AI Integrations</a>
+                                        <a href="{{ url('/services/teams/project-concierge') }}" class="dropdown-link">Project Concierge</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <a href="/pricing" class="text-[#254776] hover:text-[#1f65d1] transition">Pricing</a>
                         <a href="/contact" class="text-[#254776] hover:text-[#1f65d1] transition">Contact</a>
                         <a href="/contact" class="btn-primary">Get it fixed</a>
@@ -37,8 +77,49 @@
                 </div>
             </div>
             <div x-show="open" x-transition class="md:hidden border-t border-[#d9e8d2] bg-white shadow-sm">
-                <div class="px-4 py-3 space-y-2">
+                <div class="px-4 py-4 space-y-3 text-sm">
                     <a href="/" class="block text-[#13315c] font-semibold">Home</a>
+                    <div x-data="{ mobileServices: false }" class="border border-[#e6f0e2] rounded-lg">
+                        <button @click="mobileServices = !mobileServices" class="w-full flex items-center justify-between px-3 py-2 text-left font-semibold text-[#13315c]">
+                            <span>Services</span>
+                            <svg :class="{ 'rotate-180': mobileServices }" class="h-4 w-4 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 9l6 6 6-6" />
+                            </svg>
+                        </button>
+                        <div x-show="mobileServices" x-transition class="px-3 pb-3 space-y-4">
+                            <div class="space-y-2">
+                                <p class="text-xs font-semibold text-[#1f65d1] uppercase">Individuals</p>
+                                <div class="space-y-1">
+                                    <a href="{{ url('/services/individuals/fix-it-now') }}" class="mobile-dropdown">Fix It Now</a>
+                                    <a href="{{ url('/services/individuals/setups') }}" class="mobile-dropdown">Setups</a>
+                                    <a href="{{ url('/services/individuals/wi-fi-and-networkables') }}" class="mobile-dropdown">Wi-Fi &amp; Networkables</a>
+                                    <a href="{{ url('/services/individuals/security-and-passwords') }}" class="mobile-dropdown">Security &amp; Passwords</a>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <p class="text-xs font-semibold text-[#1f65d1] uppercase">Professionals</p>
+                                <div class="space-y-1">
+                                    <a href="{{ url('/services/professionals/brand-launch-support') }}" class="mobile-dropdown">Brand Launch Support</a>
+                                    <a href="{{ url('/services/professionals/migrations') }}" class="mobile-dropdown">Migrations</a>
+                                    <a href="{{ url('/services/professionals/leads-management-and-bookings') }}" class="mobile-dropdown">Leads Mgmt &amp; Bookings</a>
+                                    <a href="{{ url('/services/professionals/automations-and-efficiency') }}" class="mobile-dropdown">Automations &amp; Efficiency</a>
+                                    <a href="{{ url('/services/professionals/ai-integrations') }}" class="mobile-dropdown">AI Integrations</a>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <p class="text-xs font-semibold text-[#1f65d1] uppercase">Small Teams</p>
+                                <div class="space-y-1">
+                                    <a href="{{ url('/services/teams/onboarding-support') }}" class="mobile-dropdown">Onboarding Support</a>
+                                    <a href="{{ url('/services/teams/cloud-migrations') }}" class="mobile-dropdown">Cloud Migrations</a>
+                                    <a href="{{ url('/services/teams/shared-info-and-collaboration') }}" class="mobile-dropdown">Shared Info &amp; Collaboration</a>
+                                    <a href="{{ url('/services/teams/tool-consolidation') }}" class="mobile-dropdown">Tool Consolidation</a>
+                                    <a href="{{ url('/services/teams/ai-integrations') }}" class="mobile-dropdown">AI Integrations</a>
+                                    <a href="{{ url('/services/teams/project-concierge') }}" class="mobile-dropdown">Project Concierge</a>
+                                </div>
+                            </div>
+                            <a href="{{ url('/#services') }}" class="block text-[#1f65d1] font-semibold">View all services</a>
+                        </div>
+                    </div>
                     <a href="/pricing" class="block text-[#13315c] font-semibold">Pricing</a>
                     <a href="/contact" class="block text-[#13315c] font-semibold">Contact</a>
                     <a href="/contact" class="inline-flex w-full justify-center btn-primary">Get it fixed</a>
