@@ -15,10 +15,14 @@
         <header class="bg-white/80 backdrop-blur border-b border-[#d9e8d2] sticky top-0 z-20 shadow-[0_6px_30px_-20px_rgba(0,0,0,0.25)]">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between py-4">
-                    <div class="flex items-center gap-3">
-                        <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-[#6eb43f] to-[#1f65d1] text-white flex items-center justify-center font-semibold shadow-lg shadow-[#1f65d120]">H</div>
-                        <a href="/" class="text-xl font-semibold tracking-tight text-[#13315c]">HappyTek</a>
-                    </div>
+                    <a href="/" class="flex items-center gap-3 group">
+                        <span class="relative inline-flex h-11 w-11">
+                            <img src="{{ asset('images/happytek-mark.svg') }}" alt="HappyTek mark" class="h-11 w-11 drop-shadow-[0_12px_28px_rgba(31,101,209,0.18)]" loading="lazy">
+                            <span class="absolute inset-0 rounded-2xl bg-white/30 opacity-0 transition group-hover:opacity-100"></span>
+                        </span>
+                        <img src="{{ asset('images/happytek-logo-full.svg') }}" alt="HappyTek" class="hidden sm:block h-9 w-auto drop-shadow-[0_12px_28px_rgba(19,49,92,0.15)]" loading="lazy">
+                        <span class="sm:hidden text-xl font-semibold tracking-tight text-[#13315c]">HappyTek</span>
+                    </a>
                     <nav class="hidden md:flex items-center gap-8 text-sm font-medium">
                         <a href="/" class="text-[#254776] hover:text-[#1f65d1] transition">Home</a>
                         <a href="/pricing" class="text-[#254776] hover:text-[#1f65d1] transition">Pricing</a>

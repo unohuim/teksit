@@ -1,0 +1,15 @@
+<svg width="240" height="56" viewBox="0 0 240 56" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">HappyTek logo</title>
+  <desc id="desc">Rounded H monogram followed by the HappyTek wordmark.</desc>
+  <defs>
+    <linearGradient id="htGradient" x1="6" y1="4" x2="54" y2="52" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6EB43F" />
+      <stop offset="1" stop-color="#1F65D1" />
+    </linearGradient>
+  </defs>
+  <rect x="6" y="4" width="48" height="48" rx="12" fill="url(#htGradient)" />
+  <path d="M20.5 17.5V38.5" stroke="#F6FBF3" stroke-width="4" stroke-linecap="round" />
+  <path d="M40 17.5V38.5" stroke="#F6FBF3" stroke-width="4" stroke-linecap="round" />
+  <path d="M20.5 27H40" stroke="#E7F2FF" stroke-width="4" stroke-linecap="round" />
+  <text x="70" y="36" fill="#0F1B2B" font-family="'Instrument Sans', 'Inter', system-ui, -apple-system, sans-serif" font-size="26" font-weight="700" letter-spacing="0.5">HappyTek</text>
+</svg>
