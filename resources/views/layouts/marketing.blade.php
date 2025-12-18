@@ -17,7 +17,7 @@
                 <div class="flex items-center justify-between py-1">
                     <a href="/" class="flex items-center gap-3 group">
                         
-                        <img src="{{ asset('images/happytek_logo_trans.svg') }}" alt="HappyTek" class="hidden sm:block h-18 w-auto" loading="lazy">
+                        <img src="{{ asset('images/happytek_logo_trans.svg') }}" alt="HappyTek" class="hidden sm:block sm:h-16 md:h-20 lg:h-24 w-auto" loading="lazy">
                         
                     </a>
                     <nav class="hidden md:flex items-center gap-8 text-sm font-medium">
