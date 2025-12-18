@@ -2,13 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\PlanItProperlyConfirmation;
-use App\Mail\PlanItProperlyInternalNotification;
-use App\Models\Role;
 use App\Models\ServiceRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 
 class RequestController extends Controller
@@ -19,7 +15,7 @@ class RequestController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:255'],
-            'audience_type' => ['required', Rule::in(['Individual', 'Professional', 'Small Team'])],
+            'audience_type' => ['required', Rule::in(['individual', 'professional', 'small_team'])],
             'service_name' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
         ]);
@@ -53,32 +49,11 @@ class RequestController extends Controller
         }
 
         $serviceRequest->path = $validated['path'];
-        $serviceRequest->status = 'submitted';
         $serviceRequest->save();
-
-        if ($validated['path'] === 'plan_properly') {
-            Mail::to($serviceRequest->email)->send(new PlanItProperlyConfirmation($serviceRequest));
-
-            $adminEmails = Role::query()
-                ->whereIn('slug', ['super_admin', 'teams_admin'])
-                ->with('users')
-                ->get()
-                ->pluck('users')
-                ->flatten()
-                ->unique('id')
-                ->pluck('email')
-                ->filter();
-
-            if ($adminEmails->isNotEmpty()) {
-                Mail::to($adminEmails)->send(new PlanItProperlyInternalNotification($serviceRequest));
-            }
-        }
 
         return response([
             'request' => $serviceRequest,
-            'message' => $validated['path'] === 'plan_properly'
-                ? 'Plan It Properly request received.'
-                : 'Fix It Now path selected.',
+            'message' => 'Path saved.',
         ]);
     }
 }

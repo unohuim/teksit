@@ -20,14 +20,14 @@ return new class extends Migration
             $table->string('phone')->nullable();
     
             // Step 1: request context
-            $table->string('audience_type')->nullable(); // Individual | Professional | Small Team
-            $table->string('service_category')->nullable();
-            $table->string('service_name')->nullable();
-            $table->text('description')->nullable();
-    
+            $table->string('audience_type'); // individual | professional | small_team
+            $table->string('service_category');
+            $table->string('service_name');
+            $table->text('description');
+
             // Lifecycle
-            $table->string('status')->default('draft'); // draft | submitted | booked | completed
             $table->string('path')->nullable(); // fix_now | plan_properly
+            $table->string('status')->default('draft'); // draft | scheduled | completed
     
             // Calendly
             $table->string('calendly_event_uuid')->nullable();

@@ -2,9 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\FixItNowCustomerConfirmation;
-use App\Mail\FixItNowInternalNotification;
-use App\Models\Role;
 use App\Models\ServiceRequest;
 use App\Services\CalendlyTokenStore;
 use Carbon\Carbon;
@@ -76,9 +73,9 @@ class CalendlyController extends Controller
 
         $this->tokenStore->put($response->json());
 
-        $bookingUrl = config('services.calendly.event_type_url');
+        $bookingUrl = config('services.calendly.discovery_url');
         if (! $bookingUrl) {
-            abort(Response::HTTP_INTERNAL_SERVER_ERROR, 'Calendly event type URL missing.');
+            abort(Response::HTTP_INTERNAL_SERVER_ERROR, 'Calendly discovery URL missing.');
         }
 
         $redirectParams = [
@@ -105,9 +102,7 @@ class CalendlyController extends Controller
         $payload = $request->input('payload', []);
         $invitee = Arr::get($payload, 'invitee', []);
         $event = Arr::get($payload, 'event', []);
-        $eventType = Arr::get($payload, 'event_type', []);
         $scheduledEvent = is_array($event) ? $event : [];
-        $tracking = Arr::get($payload, 'tracking', []);
 
         $eventUuid = $scheduledEvent['uuid']
             ?? (isset($scheduledEvent['uri']) ? Str::afterLast($scheduledEvent['uri'], '/') : null)
@@ -121,60 +116,27 @@ class CalendlyController extends Controller
             $scheduledAt = Carbon::parse(Arr::get($payload, 'scheduled_event.start_time'));
         }
 
-        $duration = $scheduledEvent['duration']
-            ?? Arr::get($payload, 'scheduled_event.event.duration');
+        $serviceRequest = $this->resolveServiceRequest($payload);
 
-        $eventTypeName = $eventType['name']
-            ?? Arr::get($scheduledEvent, 'event_type.name')
-            ?? Arr::get($payload, 'scheduled_event.event_type.name');
-
-        $requestId = null;
-
-        if (is_array($tracking)) {
-            $requestId = Arr::get($tracking, 'utm_content');
-        }
-
-        if (is_string($requestId) && ! ctype_digit((string) $requestId)) {
-            $requestId = preg_replace('/\D/', '', $requestId) ?: null;
-        }
-
-        $serviceRequest = $requestId
-            ? ServiceRequest::find($requestId)
-            : null;
-
-        if (! $serviceRequest || ! in_array($serviceRequest->status, ['draft', 'submitted'])) {
+        if (! $serviceRequest || $serviceRequest->status !== 'draft') {
             return response()->json(['ignored' => true], Response::HTTP_ACCEPTED);
         }
 
         $serviceRequest->forceFill([
             'name' => $invitee['name'] ?? $serviceRequest->name,
             'email' => $invitee['email'] ?? $serviceRequest->email,
-            'path' => 'fix_now',
-            'status' => 'booked',
+            'status' => 'scheduled',
             'calendly_event_uuid' => $eventUuid,
             'scheduled_at' => $scheduledAt,
-            'duration' => $duration,
-            'event_type_name' => $eventTypeName,
         ])->save();
 
-        if ($serviceRequest->wasChanged()) {
-            if ($serviceRequest->email) {
-                Mail::to($serviceRequest->email)->send(new FixItNowCustomerConfirmation($serviceRequest));
-            }
-
-            $adminEmails = Role::query()
-                ->whereIn('slug', ['super_admin', 'teams_admin'])
-                ->with('users')
-                ->get()
-                ->pluck('users')
-                ->flatten()
-                ->unique('id')
-                ->pluck('email')
-                ->filter();
-
-            if ($adminEmails->isNotEmpty()) {
-                Mail::to($adminEmails)->send(new FixItNowInternalNotification($serviceRequest));
-            }
+        if ($serviceRequest->email) {
+            Mail::raw(
+                'Thanks for scheduling your discovery call with HappyTek. We will see you soon.',
+                fn ($message) => $message
+                    ->to($serviceRequest->email)
+                    ->subject('Your discovery call is scheduled')
+            );
         }
 
         return response()->json(['received' => true]);
@@ -196,6 +158,36 @@ class CalendlyController extends Controller
         return view('fix-now.confirmed', [
             'serviceRequest' => $serviceRequest,
         ]);
+    }
+
+    private function resolveServiceRequest(array $payload): ?ServiceRequest
+    {
+        $tracking = Arr::get($payload, 'tracking', []);
+        $inviteeTracking = Arr::get($payload, 'invitee.tracking', []);
+        $questions = Arr::get($payload, 'invitee.questions_and_answers', []);
+
+        $requestId = Arr::get($payload, 'request_id')
+            ?? Arr::get($inviteeTracking, 'utm_content')
+            ?? Arr::get($tracking, 'utm_content');
+
+        if (! $requestId && is_array($questions)) {
+            foreach ($questions as $qa) {
+                if (($qa['question'] ?? '') === 'request_id' && ($qa['answer'] ?? null)) {
+                    $requestId = $qa['answer'];
+                    break;
+                }
+            }
+        }
+
+        if (is_string($requestId) && ! ctype_digit((string) $requestId)) {
+            $requestId = preg_replace('/\D/', '', $requestId) ?: null;
+        }
+
+        if (! $requestId) {
+            return null;
+        }
+
+        return ServiceRequest::find((int) $requestId);
     }
 
     private function isValidSignature(Request $request): bool

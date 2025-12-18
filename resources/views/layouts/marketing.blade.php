@@ -64,7 +64,7 @@
                         </div>
                         <a href="/pricing" class="text-[#254776] hover:text-[#1f65d1] transition">Pricing</a>
                         <a href="/contact" class="text-[#254776] hover:text-[#1f65d1] transition">Contact</a>
-                        <a href="/contact" class="btn-primary">Get it fixed</a>
+                        <a href="/contact" class="btn-primary">Fix Now</a>
                     </nav>
                     <button @click="open = !open" class="md:hidden inline-flex items-center justify-center rounded-md p-2 text-[#254776] hover:bg-[#e8f2ff] focus:outline-none" aria-label="Toggle navigation">
                         <svg x-show="!open" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -122,7 +122,7 @@
                     </div>
                     <a href="/pricing" class="block text-[#13315c] font-semibold">Pricing</a>
                     <a href="/contact" class="block text-[#13315c] font-semibold">Contact</a>
-                    <a href="/contact" class="inline-flex w-full justify-center btn-primary">Get it fixed</a>
+                    <a href="/contact" class="inline-flex w-full justify-center btn-primary">Fix Now</a>
                 </div>
             </div>
         </header>

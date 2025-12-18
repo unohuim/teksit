@@ -14,145 +14,144 @@
             <p class="text-lg text-[#2b3f54]">We’ll capture your details, then you can choose between Fix It Now or Plan It Properly.</p>
         </div>
 
+        <div class="bg-white border border-[#d9e8d2] rounded-2xl p-4 sm:p-6 shadow-sm">
+            <div class="flex items-center gap-4">
+                <div class="flex-1">
+                    <div class="flex justify-between text-[11px] sm:text-xs font-semibold text-[#1f65d1]">
+                        <span>Step 1 · Draft request</span>
+                        <span>Step 2 · Choose path</span>
+                    </div>
+                    <div class="mt-2 h-2 bg-[#e8f2ff] rounded-full overflow-hidden">
+                        <div class="h-full bg-[#1f65d1] transition-all duration-300" :style="`width: ${progressPercent}%`"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <template x-if="error">
             <div class="max-w-3xl mx-auto p-4 rounded-lg bg-red-50 border border-red-200 text-red-800" x-text="error"></div>
         </template>
 
         <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
-            <div class="lg:col-span-2 muted-card shadow-md p-6 lg:p-8 space-y-6">
-                <template x-if="step === 'request'">
-                    <div class="space-y-6">
-                        <div class="space-y-2">
-                            <p class="text-sm font-semibold text-[#1f65d1]">Step 1 of 2</p>
-                            <h2 class="text-2xl font-semibold text-[#0f1b2b]">Request context</h2>
-                            <p class="text-[#2b3f54]">We’ll keep this on file as a draft even if you don’t finish scheduling.</p>
-                        </div>
-                        <form class="space-y-5" @submit.prevent="submitStepOne">
-                            <div class="grid sm:grid-cols-2 gap-4">
-                                <div class="space-y-2">
-                                    <label for="name" class="block text-sm font-medium text-[#0f1b2b]">Name</label>
-                                    <input id="name" type="text" x-model="form.name" class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-2 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]" required />
-                                </div>
-                                <div class="space-y-2">
-                                    <label for="email" class="block text-sm font-medium text-[#0f1b2b]">Email</label>
-                                    <input id="email" type="email" x-model="form.email" class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-2 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]" required />
-                                </div>
-                            </div>
-
+            <div class="lg:col-span-2 space-y-8">
+                <div class="muted-card shadow-md p-6 lg:p-8 space-y-6" x-show="step === 'request'" x-cloak>
+                    <div class="space-y-2">
+                        <p class="text-sm font-semibold text-[#1f65d1]">Step 1 of 2</p>
+                        <h2 class="text-2xl font-semibold text-[#0f1b2b]">Draft your request</h2>
+                        <p class="text-[#2b3f54]">We’ll save this immediately so you can move straight to booking.</p>
+                    </div>
+                    <form class="space-y-5" @submit.prevent="submitStepOne">
+                        <div class="grid sm:grid-cols-2 gap-4">
                             <div class="space-y-2">
-                                <label for="phone" class="block text-sm font-medium text-[#0f1b2b]">Phone (optional)</label>
-                                <input id="phone" type="text" x-model="form.phone" class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-2 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]" placeholder="If you’d rather talk" />
+                                <label for="name" class="block text-sm font-medium text-[#0f1b2b]">Name</label>
+                                <input id="name" type="text" x-model="form.name" class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-2 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]" required />
                             </div>
-
-                            <div class="space-y-3">
-                                <p class="block text-sm font-medium text-[#0f1b2b]">Who is this for?</p>
-                                <div class="grid sm:grid-cols-3 gap-3">
-                                    <template x-for="audience in audiences" :key="audience">
-                                        <label class="flex items-start gap-3 rounded-xl border border-[#cfe0c5] bg-white px-4 py-3 cursor-pointer hover:border-[#1f65d1]" :class="form.audience_type === audience ? 'ring-2 ring-[#1f65d1]' : ''">
-                                            <input type="radio" :value="audience" x-model="form.audience_type" class="mt-1" />
-                                            <span>
-                                                <span class="font-semibold text-[#0f1b2b]" x-text="audience"></span>
-                                            </span>
-                                        </label>
-                                    </template>
-                                </div>
-                            </div>
-
                             <div class="space-y-2">
-                                <label for="service_name" class="block text-sm font-medium text-[#0f1b2b]">Service</label>
-                                <select id="service_name" x-model="form.service_name" class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-2 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]" required>
-                                    <option value="" disabled>Select a service</option>
-                                    <template x-for="option in serviceOptions" :key="option">
-                                        <option x-text="option"></option>
-                                    </template>
-                                </select>
-                                <p class="text-xs text-[#2b3f54]">Options adapt to the audience you choose.</p>
+                                <label for="email" class="block text-sm font-medium text-[#0f1b2b]">Email</label>
+                                <input id="email" type="email" x-model="form.email" class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-2 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]" required />
                             </div>
+                        </div>
 
-                            <div class="space-y-2">
-                                <label for="description" class="block text-sm font-medium text-[#0f1b2b]">Tell us what’s going on</label>
-                                <textarea id="description" rows="4" x-model="form.description" class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-3 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]" placeholder="A few sentences is fine. If you’re not sure, just describe the situation." required></textarea>
-                            </div>
-
-                            <p class="text-sm text-[#2b3f54]">No scheduling, pricing, or urgency yet.</p>
-
-                            <div class="pt-2 flex flex-col sm:flex-row sm:items-center gap-3">
-                                <button type="submit" class="btn-primary w-full sm:w-auto" :disabled="loading">
-                                    <span x-show="!loading">Request</span>
-                                    <span x-show="loading">Saving...</span>
-                                </button>
-                                <p class="text-sm text-[#2b3f54]">We’ll save this as a draft so you can choose the right path next.</p>
-                            </div>
-                        </form>
-                    </div>
-                </template>
-
-                <template x-if="step === 'choose'">
-                    <div class="space-y-6">
                         <div class="space-y-2">
-                            <p class="text-sm font-semibold text-[#1f65d1]">Step 2 of 2</p>
-                            <h2 class="text-2xl font-semibold text-[#0f1b2b]">Choose your path</h2>
-                            <p class="text-[#2b3f54]">Pick how you’d like us to help. Your draft request is saved.</p>
+                            <label for="phone" class="block text-sm font-medium text-[#0f1b2b]">Phone (optional)</label>
+                            <input id="phone" type="text" x-model="form.phone" class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-2 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]" placeholder="If you’d rather talk" />
                         </div>
-                        <div class="grid gap-4 md:grid-cols-2">
-                            <div class="border border-[#cfe0c5] rounded-2xl bg-white p-5 space-y-3">
-                                <div class="flex items-center gap-2 text-green-700 font-semibold">
-                                    <span class="text-lg">🟢</span>
-                                    <span>Fix It Now</span>
-                                </div>
-                                <p class="text-sm text-[#2b3f54]">Immediate help, flat pricing. Book a session without leaving happytek.ca.</p>
-                                <p class="text-sm text-[#0f1b2b] font-semibold">Flat price: $129</p>
-                                <button @click="selectPath('fix_now')" class="btn-primary w-full" :disabled="loading">Book a Fix It Now call</button>
-                            </div>
-                            <div class="border border-[#dbe6f6] rounded-2xl bg-white p-5 space-y-3">
-                                <div class="flex items-center gap-2 text-blue-700 font-semibold">
-                                    <span class="text-lg">🔵</span>
-                                    <span>Plan It Properly</span>
-                                </div>
-                                <p class="text-sm text-[#2b3f54]">We’ll review your request, follow up with clarifying questions, and send a scoped plan with a quote.</p>
-                                <button @click="selectPath('plan_properly')" class="w-full inline-flex justify-center px-4 py-2 rounded-lg border border-[#1f65d1] text-[#1f65d1] font-semibold hover:bg-[#e8f2ff]" :disabled="loading">Continue with Plan It Properly</button>
+
+                        <div class="space-y-3">
+                            <p class="block text-sm font-medium text-[#0f1b2b]">Who is this for?</p>
+                            <div class="inline-flex rounded-xl bg-white border border-[#cfe0c5] p-1 shadow-sm w-full sm:w-auto">
+                                <template x-for="audience in audiences" :key="audience.value">
+                                    <button type="button"
+                                        class="px-4 py-2 text-sm font-semibold rounded-lg focus:outline-none"
+                                        :class="form.audience_type === audience.value ? 'bg-[#1f65d1] text-white shadow-sm' : 'text-[#0f1b2b]'"
+                                        @click="form.audience_type = audience.value">
+                                        <span x-text="audience.label"></span>
+                                    </button>
+                                </template>
                             </div>
                         </div>
-                    </div>
-                </template>
 
-                <template x-if="step === 'plan'">
-                    <div class="space-y-4">
-                        <h2 class="text-2xl font-semibold text-[#0f1b2b]">Request received</h2>
-                        <p class="text-[#2b3f54]">We’ll review your request and follow up with a scoped plan. Check your email for confirmation.</p>
-                        <div class="text-sm text-[#2b3f54] space-y-2">
-                            <p class="font-semibold">Next steps:</p>
-                            <ul class="list-disc list-inside space-y-1">
-                                <li>We may follow up with clarifying questions.</li>
-                                <li>You’ll receive a clear quote for approval.</li>
-                                <li>No payment is required yet.</li>
-                            </ul>
-                        </div>
-                    </div>
-                </template>
-
-                <template x-if="step === 'fix'">
-                    <div class="space-y-6">
                         <div class="space-y-2">
-                            <h2 class="text-2xl font-semibold text-[#0f1b2b]">Book your Fix It Now session</h2>
-                            <p class="text-[#2b3f54]">Calendar stays on this page. We’ll pass your name, email, and request ID to Calendly so we can match your booking.</p>
+                            <label for="service_name" class="block text-sm font-medium text-[#0f1b2b]">Service</label>
+                            <select id="service_name" x-model="form.service_name" class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-2 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]" required>
+                                <option value="" disabled>Select a service</option>
+                                <template x-for="option in serviceOptions" :key="option">
+                                    <option x-text="option"></option>
+                                </template>
+                            </select>
+                            <p class="text-xs text-[#2b3f54]">Options adapt to the audience you choose.</p>
                         </div>
-                        <div id="calendly-inline" class="min-h-[680px] border border-[#cfe0c5] rounded-2xl overflow-hidden bg-white"></div>
-                        <template x-if="confirmation">
-                            <div class="bg-green-50 border border-green-200 rounded-xl p-4 space-y-1">
-                                <p class="font-semibold text-green-800">You’re booked</p>
-                                <p class="text-green-800" x-text="confirmation"></p>
-                                <p class="text-sm text-green-700">A confirmation email is on the way.</p>
-                            </div>
-                        </template>
+
+                        <div class="space-y-2">
+                            <label for="description" class="block text-sm font-medium text-[#0f1b2b]">Tell us what’s going on</label>
+                            <textarea id="description" rows="4" x-model="form.description" class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-3 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]" placeholder="A few sentences is fine. If you’re not sure, just describe the situation." required></textarea>
+                        </div>
+
+                        <p class="text-sm text-[#2b3f54]">No scheduling or pricing decisions yet — just context.</p>
+
+                        <div class="pt-2 flex flex-col sm:flex-row sm:items-center gap-3">
+                            <button type="submit" class="btn-primary w-full sm:w-auto" :disabled="loading">
+                                <span x-show="!loading">Request</span>
+                                <span x-show="loading">Saving...</span>
+                            </button>
+                            <p class="text-sm text-[#2b3f54]">We save this as a draft so you can choose the right path next.</p>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="muted-card shadow-md p-6 lg:p-8 space-y-6" x-show="step === 'book'" x-cloak>
+                    <div class="space-y-2">
+                        <p class="text-sm font-semibold text-[#1f65d1]">Step 2 of 2</p>
+                        <h2 class="text-2xl font-semibold text-[#0f1b2b]">Choose your path</h2>
+                        <p class="text-[#2b3f54]">Pick how you want us to approach your discovery call. The call itself stays right here.</p>
                     </div>
-                </template>
+
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="border border-[#cfe0c5] rounded-2xl bg-white p-5 space-y-3 shadow-sm" :class="selectedPath === 'fix_now' ? 'ring-2 ring-[#1f65d1]' : ''">
+                            <div class="flex items-center gap-2 text-green-700 font-semibold">
+                                <span class="text-lg">🛠️</span>
+                                <span>Fix It Now</span>
+                            </div>
+                            <p class="text-sm text-[#2b3f54]">We’ll aim to resolve live during the discovery call if possible.</p>
+                            <button @click="choosePath('fix_now')" class="btn-primary w-full" :disabled="loading">Book discovery call</button>
+                        </div>
+                        <div class="border border-[#dbe6f6] rounded-2xl bg-white p-5 space-y-3 shadow-sm" :class="selectedPath === 'plan_properly' ? 'ring-2 ring-[#1f65d1]' : ''">
+                            <div class="flex items-center gap-2 text-blue-700 font-semibold">
+                                <span class="text-lg">🧭</span>
+                                <span>Plan It Properly</span>
+                            </div>
+                            <p class="text-sm text-[#2b3f54]">Use the call to scope work before a larger project. Same scheduling flow.</p>
+                            <button @click="choosePath('plan_properly')" class="btn-primary w-full" :disabled="loading">Book discovery call</button>
+                        </div>
+                    </div>
+
+                    <template x-if="selectedPath">
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between flex-wrap gap-3">
+                                <div>
+                                    <p class="text-sm font-semibold text-[#0f1b2b]">Discovery call</p>
+                                    <p class="text-sm text-[#2b3f54]">Stay on happytek.ca to finish booking. We’ll pass your intent and request ID quietly.</p>
+                                </div>
+                                <div class="text-xs px-3 py-1 rounded-full bg-[#e8f2ff] text-[#1f65d1] font-semibold capitalize" x-text="selectedPath.replace('_', ' ')"></div>
+                            </div>
+                            <div class="calendly-inline-widget border border-[#cfe0c5] rounded-2xl overflow-hidden bg-white" x-ref="calendlyWidget" x-show="showCalendly" style="min-width:320px;height:700px;"></div>
+                        </div>
+                    </template>
+
+                    <template x-if="confirmation">
+                        <div class="bg-green-50 border border-green-200 rounded-xl p-4 space-y-1">
+                            <p class="font-semibold text-green-800">You’re scheduled</p>
+                            <p class="text-green-800" x-text="confirmation"></p>
+                            <p class="text-sm text-green-700">We’ll email you the details.</p>
+                        </div>
+                    </template>
+                </div>
             </div>
 
-            <div class="card-surface shadow-sm p-6 space-y-5 lg:p-7 lg:space-y-6 lg:block hidden">
+            <div class="card-surface shadow-sm p-6 space-y-5 lg:p-7 lg:space-y-6">
                 <div class="space-y-2">
                     <h2 class="text-xl font-semibold text-[#0f1b2b]">What happens next</h2>
-                    <p class="text-sm text-[#2b3f54]">Straightforward steps so you know what to expect.</p>
+                    <p class="text-sm text-[#2b3f54]">Simple steps so you know what to expect.</p>
                 </div>
                 <ul class="space-y-3 text-sm text-[#2b3f54]">
                     <li class="flex gap-3">
@@ -165,7 +164,7 @@
                     </li>
                     <li class="flex gap-3">
                         <span class="accent-badge mt-1"></span>
-                        <span>Calendly stays embedded for Fix It Now bookings.</span>
+                        <span>The discovery call is embedded — no new tabs.</span>
                     </li>
                 </ul>
                 <div class="muted-card p-4 text-sm text-[#2b3f54] space-y-1">
@@ -179,27 +178,6 @@
                 </div>
             </div>
         </div>
-
-        <div class="card-surface shadow-sm p-6 space-y-3 lg:hidden">
-            <div class="space-y-2">
-                <h2 class="text-xl font-semibold text-[#0f1b2b]">What happens next</h2>
-                <p class="text-sm text-[#2b3f54]">Simple steps so you know what to expect.</p>
-            </div>
-            <ul class="space-y-2 text-sm text-[#2b3f54]">
-                <li class="flex gap-3">
-                    <span class="accent-badge mt-1"></span>
-                    <span>We save your request as a draft immediately.</span>
-                </li>
-                <li class="flex gap-3">
-                    <span class="accent-badge mt-1"></span>
-                    <span>Pick Fix It Now or Plan It Properly.</span>
-                </li>
-                <li class="flex gap-3">
-                    <span class="accent-badge mt-1"></span>
-                    <span>Calendly stays embedded for Fix It Now bookings.</span>
-                </li>
-            </ul>
-        </div>
     </div>
 </section>
 
@@ -210,24 +188,48 @@
             loading: false,
             error: null,
             confirmation: null,
-            requestId: null,
-            audiences: ['Individual', 'Professional', 'Small Team'],
+            request: null,
+            selectedPath: null,
+            showCalendly: false,
+            calendlyBaseUrl: '{{ config('services.calendly.discovery_url') }}',
+            audiences: [
+                { value: 'individual', label: 'Individual' },
+                { value: 'professional', label: 'Professional' },
+                { value: 'small_team', label: 'Small Team' },
+            ],
             form: {
                 name: '',
                 email: '',
                 phone: '',
-                audience_type: 'Individual',
+                audience_type: 'individual',
                 service_name: '',
                 description: '',
             },
             get serviceOptions() {
                 const options = {
-                    'Individual': ['Fix It Now Session', 'Setups', 'Wi-Fi & Network', 'Security & Passwords', 'Not sure — need guidance'],
-                    'Professional': ['Fix It Now Session', 'Leads Mgmt & Bookings', 'Automations & Efficiency', 'AI Integrations', 'Brand Launch Support'],
-                    'Small Team': ['Fix It Now Session', 'Onboarding Support', 'Shared Info & Collaboration', 'Tool Consolidation', 'Project Concierge'],
+                    'individual': ['Discovery call', 'Setups', 'Wi-Fi & Network', 'Security & Passwords', 'Not sure — need guidance'],
+                    'professional': ['Discovery call', 'Leads Mgmt & Bookings', 'Automations & Efficiency', 'AI Integrations', 'Brand Launch Support'],
+                    'small_team': ['Discovery call', 'Onboarding Support', 'Shared Info & Collaboration', 'Tool Consolidation', 'Project Concierge'],
                 };
 
-                return options[this.form.audience_type] ?? ['Fix It Now Session'];
+                return options[this.form.audience_type] ?? ['Discovery call'];
+            },
+            get progressPercent() {
+                return this.step === 'request' ? 50 : 100;
+            },
+            get calendlyUrl() {
+                if (!this.request || !this.calendlyBaseUrl) {
+                    return '';
+                }
+
+                const params = new URLSearchParams({
+                    name: this.request.name ?? '',
+                    email: this.request.email ?? '',
+                    request_id: this.request.id,
+                    utm_content: this.request.id,
+                });
+
+                return `${this.calendlyBaseUrl}?${params.toString()}`;
             },
             csrf() {
                 return document.querySelector('meta[name=\'csrf-token\']')?.getAttribute('content');
@@ -253,16 +255,17 @@
                     }
 
                     const data = await response.json();
-                    this.requestId = data.request.id;
-                    this.step = 'choose';
+                    this.request = data.request;
+                    this.step = 'book';
+                    this.confirmation = null;
                 } catch (e) {
                     this.error = e.message || 'Something went wrong.';
                 } finally {
                     this.loading = false;
                 }
             },
-            async selectPath(path) {
-                if (!this.requestId) {
+            async choosePath(path) {
+                if (!this.request?.id) {
                     this.error = 'Save your request first.';
                     return;
                 }
@@ -278,7 +281,7 @@
                             'X-CSRF-TOKEN': this.csrf(),
                         },
                         body: JSON.stringify({
-                            request_id: this.requestId,
+                            request_id: this.request.id,
                             path,
                         }),
                     });
@@ -287,46 +290,39 @@
                         throw new Error('Unable to continue.');
                     }
 
-                    if (path === 'plan_properly') {
-                        this.step = 'plan';
-                    } else {
-                        this.step = 'fix';
-                        this.initCalendly();
-                    }
+                    const data = await response.json();
+                    this.request = data.request;
+                    this.selectedPath = path;
+                    this.step = 'book';
+                    this.showCalendly = true;
+                    this.loadCalendly();
                 } catch (e) {
                     this.error = e.message || 'Something went wrong.';
                 } finally {
                     this.loading = false;
                 }
             },
-            initCalendly() {
-                const url = '{{ config('services.calendly.event_type_url') }}';
-
-                if (!url) {
-                    this.error = 'Calendly is not configured yet.';
+            loadCalendly() {
+                if (!this.calendlyBaseUrl) {
                     return;
                 }
 
-                const waitForCalendly = () => {
-                    if (window.Calendly) {
-                        Calendly.initInlineWidget({
-                            url,
-                            parentElement: document.getElementById('calendly-inline'),
-                            prefill: {
-                                name: this.form.name,
-                                email: this.form.email,
-                            },
-                            utm: {
-                                utm_medium: 'request',
-                                utm_content: this.requestId ? String(this.requestId) : '',
-                            },
-                        });
-                    } else {
-                        setTimeout(waitForCalendly, 200);
-                    }
-                };
+                this.$nextTick(() => {
+                    const widget = this.$refs.calendlyWidget;
 
-                waitForCalendly();
+                    if (!widget) {
+                        return;
+                    }
+
+                    widget.setAttribute('data-url', this.calendlyUrl);
+
+                    if (window.Calendly && typeof Calendly.initInlineWidget === 'function') {
+                        Calendly.initInlineWidget({
+                            url: this.calendlyUrl,
+                            parentElement: widget,
+                        });
+                    }
+                });
             },
             initListeners() {
                 window.addEventListener('message', (event) => {
