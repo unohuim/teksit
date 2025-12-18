@@ -74,7 +74,7 @@
                 </li>
             </ul>
             <div class="muted-card p-4 text-sm text-[#0f1b2b]">
-                <p class="font-semibold">Tech energy low? We bring big tech energy.</p>
+                <p class="font-semibold">Tech Friction? We got Big Tech Energy.</p>
                 <p class="mt-1">Show us what’s stuck. We’ll steady it, finish it, and hand back control.</p>
             </div>
         </div>
