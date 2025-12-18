@@ -8,9 +8,8 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Str;
 
-class FixItNowCustomerConfirmation extends Mailable
+class PlanItProperlyInternalNotification extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -21,17 +20,16 @@ class FixItNowCustomerConfirmation extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your HappyTek Fix It Now session is booked',
+            subject: 'New Plan It Properly request',
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            view: 'emails.fix-now.customer-confirmation',
+            view: 'emails.plan-properly.internal-notification',
             with: [
                 'serviceRequest' => $this->serviceRequest,
-                'firstName' => Str::of($this->serviceRequest->name)->before(' '),
             ],
         );
     }

@@ -15,6 +15,8 @@ class ServiceRequest extends Model
         'name',
         'email',
         'phone',
+        'status',
+        'audience_type',
         'service_category',
         'service_name',
         'description',
