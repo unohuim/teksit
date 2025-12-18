@@ -3,8 +3,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', 'Teksit | Remote tech help that feels personal')</title>
-    <meta name="description" content="Teksit is your remote tech concierge for seniors, realtors, founders, and small teams. Calm, patient help without the jargon.">
+    <title>@yield('title', 'HappyTek | Gentle remote tech help that restores your tech energy')</title>
+    <meta name="description" content="HappyTek is your calm, remote tech companion. Patient, plain-language help for people with low tech energy, founders, and small teams across Canada.">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -12,18 +12,18 @@
 </head>
 <body class="bg-slate-50 text-slate-900 antialiased">
     <div x-data="{ open: false }" class="min-h-screen flex flex-col">
-        <header class="bg-white border-b border-slate-200 shadow-sm">
+        <header class="bg-white/90 backdrop-blur border-b border-slate-200/70 sticky top-0 z-20">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between py-4">
-                    <div class="flex items-center gap-2">
-                        <div class="h-10 w-10 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-semibold">T</div>
-                        <a href="/" class="text-xl font-semibold tracking-tight text-slate-900">Teksit</a>
+                    <div class="flex items-center gap-3">
+                        <div class="h-10 w-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-semibold shadow-sm">H</div>
+                        <a href="/" class="text-xl font-semibold tracking-tight text-slate-900">HappyTek</a>
                     </div>
-                    <nav class="hidden md:flex items-center gap-6 text-sm font-medium">
-                        <a href="/" class="text-slate-700 hover:text-indigo-600">Home</a>
-                        <a href="/pricing" class="text-slate-700 hover:text-indigo-600">Pricing</a>
-                        <a href="/contact" class="text-slate-700 hover:text-indigo-600">Contact</a>
-                        <a href="/contact" class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-500 transition">Book help</a>
+                    <nav class="hidden md:flex items-center gap-8 text-sm font-medium">
+                        <a href="/" class="text-slate-700 hover:text-emerald-700 transition">Home</a>
+                        <a href="/pricing" class="text-slate-700 hover:text-emerald-700 transition">Pricing</a>
+                        <a href="/contact" class="text-slate-700 hover:text-emerald-700 transition">Contact</a>
+                        <a href="/contact" class="inline-flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-emerald-700 transition">Book a call</a>
                     </nav>
                     <button @click="open = !open" class="md:hidden inline-flex items-center justify-center rounded-md p-2 text-slate-700 hover:bg-slate-100 focus:outline-none" aria-label="Toggle navigation">
                         <svg x-show="!open" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -37,10 +37,10 @@
             </div>
             <div x-show="open" x-transition class="md:hidden border-t border-slate-200 bg-white shadow-sm">
                 <div class="px-4 py-3 space-y-2">
-                    <a href="/" class="block text-slate-800 font-medium">Home</a>
-                    <a href="/pricing" class="block text-slate-800 font-medium">Pricing</a>
-                    <a href="/contact" class="block text-slate-800 font-medium">Contact</a>
-                    <a href="/contact" class="inline-flex w-full justify-center bg-indigo-600 text-white px-4 py-2 rounded-lg shadow hover:bg-indigo-500 transition">Book help</a>
+                    <a href="/" class="block text-slate-900 font-semibold">Home</a>
+                    <a href="/pricing" class="block text-slate-900 font-semibold">Pricing</a>
+                    <a href="/contact" class="block text-slate-900 font-semibold">Contact</a>
+                    <a href="/contact" class="inline-flex w-full justify-center bg-slate-900 text-white px-4 py-2 rounded-lg shadow-sm hover:bg-emerald-700 transition">Book a call</a>
                 </div>
             </div>
         </header>
@@ -50,11 +50,12 @@
         </main>
 
         <footer class="bg-slate-900 text-slate-100 mt-16">
-            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                    <div>
-                        <p class="text-lg font-semibold">Teksit</p>
-                        <p class="text-sm text-slate-300">Your personal tech person — without the stress.</p>
+                    <div class="space-y-2">
+                        <p class="text-lg font-semibold">HappyTek</p>
+                        <p class="text-sm text-slate-300">Tech shouldn’t drain you. We restore your tech energy with calm, human support.</p>
+                        <p class="text-sm text-slate-300">hello@happytek.ca</p>
                     </div>
                     <div class="flex items-center gap-6 text-sm">
                         <a href="/" class="hover:text-white">Home</a>
@@ -62,7 +63,7 @@
                         <a href="/contact" class="hover:text-white">Contact</a>
                     </div>
                 </div>
-                <p class="mt-6 text-sm text-slate-400">© {{ date('Y') }} Teksit. All services are delivered remotely across Canada.</p>
+                <p class="mt-8 text-sm text-slate-500">© {{ date('Y') }} HappyTek. Remote tech help across Canada.</p>
             </div>
         </footer>
     </div>
