@@ -12,7 +12,7 @@
             <li><strong>Phone:</strong> {{ $serviceRequest->phone }}</li>
         @endif
         <li><strong>Audience:</strong> {{ $serviceRequest->audience_type }}</li>
-        <li><strong>Service:</strong> {{ $serviceRequest->service_name }}</li>
+        <li><strong>Service:</strong> {{ $serviceRequest->service_category }}</li>
     </ul>
 </body>
 </html>

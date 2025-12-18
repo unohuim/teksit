@@ -118,7 +118,7 @@ class CalendlyController extends Controller
 
         $serviceRequest = $this->resolveServiceRequest($payload);
 
-        if (! $serviceRequest || $serviceRequest->status !== 'draft') {
+        if (! $serviceRequest || ! in_array($serviceRequest->status, ['started', 'scheduled'])) {
             return response()->json(['ignored' => true], Response::HTTP_ACCEPTED);
         }
 

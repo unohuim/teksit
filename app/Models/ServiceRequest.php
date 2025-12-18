@@ -18,9 +18,7 @@ class ServiceRequest extends Model
         'status',
         'audience_type',
         'service_category',
-        'service_name',
         'description',
-        'path',
         'calendly_event_uuid',
         'scheduled_at',
     ];
@@ -35,5 +33,10 @@ class ServiceRequest extends Model
     public function quotes()
     {
         return $this->hasMany(Quote::class, 'request_id');
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class, 'request_id');
     }
 }
