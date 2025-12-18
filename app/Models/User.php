@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
@@ -44,5 +45,37 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<Role>
+     */
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class)->withTimestamps();
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<Organization>
+     */
+    public function organizations()
+    {
+        return $this->belongsToMany(Organization::class)
+            ->withPivot(['role'])
+            ->withTimestamps();
+    }
+
+    protected static function booted(): void
+    {
+        static::created(function (self $user) {
+            $baseName = $user->name ?: $user->email ?: 'Personal';
+            $organizationName = Str::of($baseName)->finish("'s Organization");
+
+            $organization = Organization::create([
+                'name' => $organizationName,
+            ]);
+
+            $user->organizations()->attach($organization->id, ['role' => 'owner']);
+        });
     }
 }
