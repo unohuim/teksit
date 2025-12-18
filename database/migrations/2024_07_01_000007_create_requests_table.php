@@ -13,13 +13,26 @@ return new class extends Migration
     {
         Schema::create('requests', function (Blueprint $table) {
             $table->id();
+    
+            // Contact info (marketing + ops)
             $table->string('name');
             $table->string('email');
             $table->string('phone')->nullable();
-            $table->string('service_category');
-            $table->string('service_name');
-            $table->text('description');
-            $table->enum('path', ['fix_now', 'plan_properly']);
+    
+            // Step 1: request context
+            $table->string('audience_type')->nullable(); // Individual | Professional | Small Team
+            $table->string('service_category')->nullable();
+            $table->string('service_name')->nullable();
+            $table->text('description')->nullable();
+    
+            // Lifecycle
+            $table->string('status')->default('draft'); // draft | submitted | booked | completed
+            $table->string('path')->nullable(); // fix_now | plan_properly
+    
+            // Calendly
+            $table->string('calendly_event_uuid')->nullable();
+            $table->timestamp('scheduled_at')->nullable();
+    
             $table->timestamps();
         });
     }
