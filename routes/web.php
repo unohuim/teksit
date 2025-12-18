@@ -6,9 +6,11 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome');
 Route::view('/pricing', 'pricing');
-Route::view('/contact', 'contact')->name('contact');
-Route::post('/contact/request', [RequestController::class, 'storeDraft'])->name('requests.store');
-Route::post('/contact/path', [RequestController::class, 'choosePath'])->name('requests.choose-path');
+Route::view('/contact', 'requests.flow')->name('contact');
+Route::post('/requests/start', [RequestController::class, 'start'])->name('requests.start');
+Route::post('/requests/schedule', [RequestController::class, 'storeSchedule'])->name('requests.schedule');
+Route::post('/requests/{request}/deposit', [RequestController::class, 'recordDeposit'])->name('requests.deposit');
+Route::get('/request/confirmed', [RequestController::class, 'confirmed'])->name('requests.confirmed');
 
 Route::get('/fix-now', [CalendlyController::class, 'showFixNow'])->name('fix-now');
 Route::get('/auth/calendly/redirect', [CalendlyController::class, 'redirectToCalendly'])->name('calendly.redirect');
