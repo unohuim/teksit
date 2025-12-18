@@ -21,7 +21,7 @@ class FixItNowCustomerConfirmation extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Fix request received — we’re on it',
+            subject: 'Your HappyTek session is booked',
         );
     }
 

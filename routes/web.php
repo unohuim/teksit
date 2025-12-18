@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CalendlyController;
 use App\Http\Controllers\RequestController;
 use Illuminate\Support\Facades\Route;
 
@@ -7,6 +8,12 @@ Route::view('/', 'welcome');
 Route::view('/pricing', 'pricing');
 Route::view('/contact', 'contact');
 Route::post('/contact', [RequestController::class, 'store'])->name('requests.store');
+
+Route::get('/fix-now', [CalendlyController::class, 'showFixNow'])->name('fix-now');
+Route::get('/auth/calendly/redirect', [CalendlyController::class, 'redirectToCalendly'])->name('calendly.redirect');
+Route::get('/auth/calendly/callback', [CalendlyController::class, 'handleCallback'])->name('calendly.callback');
+Route::post('/webhooks/calendly', [CalendlyController::class, 'handleWebhook']);
+Route::get('/fix-now/confirmed', [CalendlyController::class, 'confirmed'])->name('fix-now.confirmed');
 
 Route::prefix('services')->group(function () {
     // Individuals

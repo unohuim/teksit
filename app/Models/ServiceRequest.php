@@ -19,6 +19,14 @@ class ServiceRequest extends Model
         'service_name',
         'description',
         'path',
+        'calendly_event_uuid',
+        'scheduled_at',
+        'duration',
+        'event_type_name',
+    ];
+
+    protected $casts = [
+        'scheduled_at' => 'datetime',
     ];
 
     /**
