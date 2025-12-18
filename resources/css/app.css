@@ -9,3 +9,72 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+:root {
+    --brand-green: #6eb43f;
+    --brand-blue: #1f65d1;
+    --brand-navy: #0f1b2b;
+    --brand-soft: #f3f8ef;
+}
+
+::selection {
+    background: linear-gradient(120deg, color-mix(in srgb, var(--brand-green) 70%, white), color-mix(in srgb, var(--brand-blue) 70%, white));
+    color: #0b1422;
+}
+
+@layer base {
+    body {
+        font-family: var(--font-sans);
+    }
+}
+
+@layer components {
+    .btn-primary {
+        @apply inline-flex items-center justify-center px-5 py-3 font-semibold rounded-xl text-white transition-transform duration-200;
+        background: linear-gradient(135deg, var(--brand-green), var(--brand-blue));
+        box-shadow: 0 15px 35px -20px rgba(31, 101, 209, 0.6), 0 10px 30px -20px rgba(110, 180, 63, 0.5);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.02);
+    }
+
+    .btn-secondary {
+        @apply inline-flex items-center justify-center px-5 py-3 font-semibold rounded-xl border transition;
+        border-color: color-mix(in srgb, var(--brand-green) 55%, var(--brand-blue) 45%);
+        color: #13315c;
+        background: white;
+        box-shadow: 0 8px 24px -18px rgba(19, 49, 92, 0.4);
+    }
+
+    .btn-secondary:hover {
+        border-color: var(--brand-blue);
+        color: var(--brand-blue);
+    }
+
+    .pill {
+        @apply inline-flex items-center gap-2 px-3 py-1 text-xs font-semibold uppercase tracking-wide rounded-full;
+        background: color-mix(in srgb, var(--brand-green) 20%, white);
+        color: #215b3a;
+        border: 1px solid color-mix(in srgb, var(--brand-green) 45%, white);
+    }
+
+    .card-surface {
+        @apply rounded-2xl border shadow-sm;
+        border-color: color-mix(in srgb, var(--brand-blue) 15%, #e5ecf7);
+        background: linear-gradient(145deg, white, color-mix(in srgb, var(--brand-blue) 4%, white));
+    }
+
+    .muted-card {
+        @apply rounded-2xl border shadow-sm;
+        border-color: color-mix(in srgb, var(--brand-green) 18%, #e6f1df);
+        background: color-mix(in srgb, var(--brand-green) 6%, white);
+    }
+
+    .accent-badge {
+        @apply h-2.5 w-2.5 rounded-full;
+        background: linear-gradient(135deg, var(--brand-green), var(--brand-blue));
+        box-shadow: 0 0 0 5px color-mix(in srgb, var(--brand-blue) 10%, transparent);
+    }
+}
