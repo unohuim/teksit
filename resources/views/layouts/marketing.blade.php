@@ -14,10 +14,10 @@
     <div x-data="{ open: false }" class="min-h-screen flex flex-col">
         <header class="bg-white border-b border-[#d9e8d2] sticky top-0 z-20">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex items-center justify-between py-4 bg-white">
+                <div class="flex items-center justify-between p-1">
                     <a href="/" class="flex items-center gap-3 group">
                         
-                        <img src="{{ asset('images/happytek_logo_trans.svg') }}" alt="HappyTek" class="hidden sm:block h-24 w-auto drop-shadow-[0_12px_28px_rgba(19,49,92,0.15)]" loading="lazy">
+                        <img src="{{ asset('images/happytek_logo_trans.svg') }}" alt="HappyTek" class="hidden sm:block h-18 w-auto" loading="lazy">
                         
                     </a>
                     <nav class="hidden md:flex items-center gap-8 text-sm font-medium">
