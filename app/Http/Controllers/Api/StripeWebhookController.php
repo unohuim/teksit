@@ -30,6 +30,45 @@ class StripeWebhookController extends Controller
             return response()->json(['message' => 'Invalid webhook payload.'], Response::HTTP_BAD_REQUEST);
         }
 
+        if ($event->type === 'payment_intent.succeeded') {
+            $intent = $event->data->object;
+            $paymentIntentId = $intent->id ?? null;
+            $requestId = $intent->metadata->request_id ?? null;
+
+            $serviceRequest = null;
+
+            if ($paymentIntentId) {
+                $serviceRequest = ServiceRequest::where('payment_intent_id', $paymentIntentId)->first();
+            }
+
+            if (! $serviceRequest && $requestId) {
+                $serviceRequest = ServiceRequest::find($requestId);
+            }
+
+            if (! $serviceRequest) {
+                Log::warning('Stripe payment intent succeeded without matching request.', [
+                    'payment_intent_id' => $paymentIntentId,
+                    'request_id' => $requestId,
+                ]);
+
+                return response()->json(['ignored' => true], Response::HTTP_ACCEPTED);
+            }
+
+            if ($serviceRequest->deposit_status === 'paid') {
+                return response()->json(['received' => true]);
+            }
+
+            $serviceRequest->forceFill([
+                'payment_intent_id' => $paymentIntentId,
+                'deposit_status' => 'paid',
+                'deposit_paid_at' => now(),
+                'paid_at' => now(),
+                'status' => 'paid',
+            ])->save();
+
+            return response()->json(['received' => true]);
+        }
+
         if ($event->type !== 'checkout.session.completed') {
             return response()->json(['ignored' => true]);
         }
@@ -69,6 +108,7 @@ class StripeWebhookController extends Controller
         $serviceRequest->forceFill([
             'deposit_status' => 'paid',
             'deposit_paid_at' => now(),
+            'paid_at' => now(),
             'status' => 'paid',
         ])->save();
 

@@ -5,6 +5,7 @@
 @section('content')
 <link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet">
 <script src="https://assets.calendly.com/assets/external/widget.js" async data-calendly-script></script>
+<script src="https://js.stripe.com/v3/"></script>
 
 <section id="request-start" class="bg-white/70 backdrop-blur-sm py-14 sm:py-18" x-data="requestFlow()" x-init="init()">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
@@ -91,12 +92,11 @@
 
                         <p class="text-sm text-[#2b3f54]">No pricing yet. We’ll only use your email to coordinate the call and follow up.</p>
 
-                        <div class="pt-2 flex flex-col sm:flex-row sm:items-center gap-3">
+                        <div class="pt-2 flex justify-end">
                             <button type="submit" class="btn-primary w-full sm:w-auto" :disabled="loading">
-                                <span x-show="!loading">Schedule discovery call</span>
+                                <span x-show="!loading">Start Support</span>
                                 <span x-show="loading">Saving...</span>
                             </button>
-                            <p class="text-sm text-[#2b3f54]">We save instantly so we can prefill Calendly and save as started.</p>
                         </div>
                     </form>
                 </div>
@@ -118,12 +118,19 @@
                             </div>
                             <template x-if="request">
                                 <div class="space-y-6">
-                                    <div
-                                        class="calendly-inline-widget border border-[#cfe0c5] rounded-2xl overflow-hidden bg-white"
-                                        x-ref="calendlyWidget"
-                                        style="min-width:320px;height:700px;">
+                                    <div class="relative">
+                                        <div
+                                            class="calendly-inline-widget border border-[#cfe0c5] rounded-2xl overflow-hidden bg-white"
+                                            x-ref="calendlyWidget"
+                                            style="min-width:320px;height:700px;">
+                                        </div>
+                                        <div
+                                            class="absolute inset-0 bg-white/85 backdrop-blur-sm flex items-center justify-center text-sm font-semibold text-[#1f65d1] rounded-2xl border border-[#cfe0c5]"
+                                            x-show="calendlyLoading"
+                                            x-cloak>
+                                            Loading scheduler...
+                                        </div>
                                     </div>
-
                                 </div>
                             </template>
                         </div>
@@ -150,8 +157,28 @@
                             <li>If the project is rejected, the $129 remains the discovery fee.</li>
                         </ul>
                     </div>
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                        <button @click="submitDeposit" class="btn-primary w-full sm:w-auto" :disabled="billing" x-text="billing ? 'Processing...' : 'Pay $129 deposit'"></button>
+                    <div class="space-y-4">
+                        <div class="bg-white border border-[#dbe6f6] rounded-xl p-4 flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-semibold text-[#0f1b2b]">Amount due</p>
+                                <p class="text-xs text-[#2b3f54]">Discovery deposit</p>
+                            </div>
+                            <p class="text-lg font-semibold text-[#0f1b2b]">$129 CAD</p>
+                        </div>
+                        <div class="bg-white border border-[#dbe6f6] rounded-xl p-4">
+                            <div id="payment-element" class="min-h-[200px]"></div>
+                        </div>
+                        <template x-if="paymentError">
+                            <div class="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700" x-text="paymentError"></div>
+                        </template>
+                        <template x-if="paymentSuccess">
+                            <div class="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-800">
+                                Payment confirmed. Your discovery deposit is recorded.
+                            </div>
+                        </template>
+                        <form class="flex justify-end" @submit.prevent="submitDeposit">
+                            <button type="submit" class="btn-primary w-full sm:w-auto" :disabled="billing || paymentSuccess" x-text="billing ? 'Processing...' : 'Pay $129'"></button>
+                        </form>
                         <p class="text-sm text-[#2b3f54]">Your request is marked paid immediately after a successful charge.</p>
                     </div>
                 </div>
@@ -197,9 +224,17 @@
             scheduledCopy: null,
             billingMounted: false,
             calendlyInitialized: false,
+            calendlyLoading: false,
             calendlyBaseUrl: '{{ config('services.calendly.discovery_url') }}',
             calendlyDebug: @json(config('services.calendly.debug')),
             isProduction: @json(app()->environment('production')),
+            stripePublicKey: @json(config('services.stripe.publishable')),
+            stripe: null,
+            stripeElements: null,
+            paymentElement: null,
+            paymentIntentClientSecret: null,
+            paymentError: null,
+            paymentSuccess: false,
             audiences: [
                 { value: 'individual', label: 'Individual' },
                 { value: 'professional', label: 'Professional' },
@@ -291,6 +326,7 @@
                     return;
                 }
 
+                this.calendlyLoading = true;
                 widget.innerHTML = '';
 
                 const waitForCalendly = () => new Promise((resolve, reject) => {
@@ -319,9 +355,31 @@
                         parentElement: widget,
                     });
                     this.calendlyInitialized = true;
+                    await this.waitForCalendlyIframe(widget);
+                    this.calendlyLoading = false;
                 } catch (error) {
                     this.error = error.message || 'Calendly failed to load.';
+                    this.calendlyLoading = false;
                 }
+            },
+            waitForCalendlyIframe(container) {
+                return new Promise((resolve) => {
+                    const iframe = container.querySelector('iframe');
+                    if (iframe) {
+                        requestAnimationFrame(() => resolve());
+                        return;
+                    }
+
+                    const observer = new MutationObserver(() => {
+                        const iframeNode = container.querySelector('iframe');
+                        if (iframeNode) {
+                            observer.disconnect();
+                            requestAnimationFrame(() => resolve());
+                        }
+                    });
+
+                    observer.observe(container, { childList: true, subtree: true });
+                });
             },
             async submitDeposit() {
                 if (!this.request?.id) {
@@ -329,30 +387,73 @@
                     return;
                 }
 
+                if (this.paymentSuccess) {
+                    return;
+                }
+
+                if (!this.stripe || !this.stripeElements) {
+                    this.paymentError = 'Payment form is still loading.';
+                    return;
+                }
+
                 this.billing = true;
-                this.error = null;
+                this.paymentError = null;
 
                 try {
-                    const response = await fetch(`/api/requests/${this.request.id}/deposit`, {
+                    const result = await this.stripe.confirmPayment({
+                        elements: this.stripeElements,
+                        confirmParams: {
+                            return_url: window.location.href,
+                        },
+                        redirect: 'if_required',
+                    });
+
+                    if (result.error) {
+                        this.paymentError = result.error.message || 'Payment failed.';
+                        return;
+                    }
+
+                    const paymentIntent = result.paymentIntent;
+
+                    if (!paymentIntent?.id) {
+                        this.paymentError = 'Payment could not be verified.';
+                        return;
+                    }
+
+                    if (paymentIntent.status !== 'succeeded') {
+                        this.paymentError = 'Payment requires additional verification.';
+                        return;
+                    }
+
+                    const confirmResponse = await fetch(`/api/requests/${this.request.id}/confirm-payment`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'Accept': 'application/json',
                             'X-CSRF-TOKEN': this.csrf(),
                         },
-                        body: JSON.stringify({ payment_method: 'card' }),
+                        body: JSON.stringify({ payment_intent_id: paymentIntent.id }),
                     });
 
-                    if (!response.ok) {
-                        throw new Error('Payment could not be recorded.');
+                    let confirmData = {};
+
+                    try {
+                        confirmData = await confirmResponse.json();
+                    } catch (error) {
+                        confirmData = {};
                     }
 
-                    const data = await response.json();
-                    if (data.redirect) {
-                        window.location = `${data.redirect}?request_id=${this.request.id}`;
+                    if (!confirmResponse.ok || !confirmData.success) {
+                        this.paymentError = confirmData.message || 'Payment could not be recorded.';
+                        return;
+                    }
+
+                    this.paymentSuccess = true;
+                    if (confirmData.request) {
+                        this.request = confirmData.request;
                     }
                 } catch (e) {
-                    this.error = e.message || 'Payment failed.';
+                    this.paymentError = e.message || 'Payment failed.';
                 } finally {
                     this.billing = false;
                 }
@@ -364,6 +465,62 @@
                 if (!billingRoot) return;
 
                 this.billingMounted = true;
+                this.paymentError = null;
+
+                if (!this.request?.id) {
+                    this.paymentError = 'Start your request first.';
+                    return;
+                }
+
+                if (!this.stripePublicKey) {
+                    this.paymentError = 'Stripe is not configured.';
+                    return;
+                }
+
+                if (typeof Stripe !== 'function') {
+                    this.paymentError = 'Stripe.js failed to load.';
+                    return;
+                }
+
+                this.setupPaymentElement();
+            },
+            async setupPaymentElement() {
+                try {
+                    const response = await fetch(`/api/requests/${this.request.id}/payment-intent`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': this.csrf(),
+                        },
+                    });
+
+                    let data = {};
+
+                    try {
+                        data = await response.json();
+                    } catch (error) {
+                        data = {};
+                    }
+
+                    if (!response.ok || !data.client_secret) {
+                        throw new Error(data.message || 'Unable to start payment.');
+                    }
+
+                    this.paymentIntentClientSecret = data.client_secret;
+                    this.stripe = Stripe(this.stripePublicKey);
+                    this.stripeElements = this.stripe.elements({
+                        clientSecret: this.paymentIntentClientSecret,
+                        appearance: {
+                            theme: 'stripe',
+                        },
+                    });
+
+                    this.paymentElement = this.stripeElements.create('payment');
+                    this.paymentElement.mount('#payment-element');
+                } catch (error) {
+                    this.paymentError = error.message || 'Unable to start payment.';
+                }
             },
             init() {
                 const self = this;
@@ -374,13 +531,18 @@
 
                 this.$watch('step', (value) => {
                     if (value === 'billing') {
+                        this.paymentError = null;
+                        this.paymentSuccess = this.request?.deposit_status === 'paid' || this.request?.status === 'paid';
                         this.initBilling();
                     }
 
                     if (value === 'book') {
+                        this.calendlyLoading = !this.calendlyInitialized;
                         this.$nextTick(() => {
                             this.initCalendlyWidget();
                         });
+                    } else {
+                        this.calendlyLoading = false;
                     }
                 });
 

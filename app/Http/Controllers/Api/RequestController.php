@@ -8,8 +8,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
-use Stripe\Checkout\Session as StripeCheckoutSession;
 use Stripe\Exception\ApiErrorException;
+use Stripe\StripeClient;
 
 class RequestController extends Controller
 {
@@ -39,6 +39,11 @@ class RequestController extends Controller
 
     public function deposit(Request $request, ServiceRequest $serviceRequest): JsonResponse
     {
+        return $this->paymentIntent($request, $serviceRequest);
+    }
+
+    public function paymentIntent(Request $request, ServiceRequest $serviceRequest): JsonResponse
+    {
         if ($serviceRequest->deposit_status === 'paid') {
             return response()->json([
                 'message' => 'Deposit already paid.',
@@ -60,45 +65,120 @@ class RequestController extends Controller
         }
 
         try {
-            // Use Stripe-hosted Checkout so card details never touch our backend.
-            $session = StripeCheckoutSession::create([
-                'mode' => 'payment',
+            $stripe = new StripeClient($secret);
+
+            if ($serviceRequest->payment_intent_id) {
+                $existingIntent = $stripe->paymentIntents->retrieve($serviceRequest->payment_intent_id, []);
+
+                if (($existingIntent->status ?? null) === 'succeeded') {
+                    return response()->json([
+                        'message' => 'Deposit already paid.',
+                    ], Response::HTTP_UNPROCESSABLE_ENTITY);
+                }
+
+                if ($existingIntent->client_secret) {
+                    return response()->json([
+                        'client_secret' => $existingIntent->client_secret,
+                    ]);
+                }
+            }
+
+            $intent = $stripe->paymentIntents->create([
+                'amount' => 12900,
                 'currency' => 'cad',
-                'success_url' => url("/contact?request={$serviceRequest->id}&paid=1"),
-                'cancel_url' => url("/contact?request={$serviceRequest->id}"),
-                'line_items' => [
-                    [
-                        'quantity' => 1,
-                        'price_data' => [
-                            'currency' => 'cad',
-                            'unit_amount' => 12900,
-                            'product_data' => [
-                                'name' => 'HappyTek Discovery Deposit',
-                            ],
-                        ],
-                    ],
+                'automatic_payment_methods' => [
+                    'enabled' => true,
                 ],
+                'description' => 'HappyTek Discovery Deposit',
                 'metadata' => [
                     'request_id' => (string) $serviceRequest->id,
                     'email' => (string) $serviceRequest->email,
                 ],
-                'customer_email' => $serviceRequest->email,
-            ], [
-                'api_key' => $secret,
+                'receipt_email' => $serviceRequest->email,
             ]);
         } catch (ApiErrorException $exception) {
             return response()->json([
-                'message' => 'Unable to start Stripe Checkout.',
+                'message' => 'Unable to start Stripe payment.',
             ], Response::HTTP_BAD_GATEWAY);
         }
 
         $serviceRequest->forceFill([
-            'stripe_checkout_session_id' => $session->id,
+            'payment_intent_id' => $intent->id,
             'deposit_status' => 'pending',
         ])->save();
 
         return response()->json([
-            'checkout_url' => $session->url,
+            'client_secret' => $intent->client_secret,
+        ]);
+    }
+
+    public function confirmPayment(Request $request, ServiceRequest $serviceRequest): JsonResponse
+    {
+        $validated = $request->validate([
+            'payment_intent_id' => ['required', 'string'],
+        ]);
+
+        if ($serviceRequest->deposit_status === 'paid') {
+            return response()->json([
+                'success' => true,
+            ]);
+        }
+
+        if ($serviceRequest->status !== 'scheduled') {
+            return response()->json([
+                'message' => 'Schedule your discovery call first.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $secret = config('services.stripe.secret');
+
+        if (! $secret) {
+            return response()->json([
+                'message' => 'Stripe is not configured.',
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        try {
+            $stripe = new StripeClient($secret);
+            $intent = $stripe->paymentIntents->retrieve($validated['payment_intent_id'], []);
+        } catch (ApiErrorException $exception) {
+            return response()->json([
+                'message' => 'Unable to verify Stripe payment.',
+            ], Response::HTTP_BAD_GATEWAY);
+        }
+
+        $intentMetadata = (array) ($intent->metadata ?? []);
+        $intentRequestId = $intentMetadata['request_id'] ?? null;
+
+        if ((string) $serviceRequest->id !== (string) $intentRequestId) {
+            return response()->json([
+                'message' => 'Payment verification failed.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        if (($intent->status ?? null) !== 'succeeded') {
+            return response()->json([
+                'message' => 'Payment is not completed yet.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        if ((int) $intent->amount !== 12900 || ($intent->currency ?? null) !== 'cad') {
+            return response()->json([
+                'message' => 'Payment amount mismatch.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $serviceRequest->forceFill([
+            'payment_intent_id' => $intent->id,
+            'deposit_status' => 'paid',
+            'deposit_paid_at' => now(),
+            'paid_at' => now(),
+            'status' => 'paid',
+        ])->save();
+
+        return response()->json([
+            'success' => true,
+            'request' => $serviceRequest,
         ]);
     }
 }

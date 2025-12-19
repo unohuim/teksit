@@ -24,13 +24,16 @@ class ServiceRequest extends Model
         'calendly_event_uuid',
         'scheduled_at',
         'deposit_status',
+        'payment_intent_id',
         'stripe_checkout_session_id',
         'deposit_paid_at',
+        'paid_at',
     ];
 
     protected $casts = [
         'scheduled_at' => 'datetime',
         'deposit_paid_at' => 'datetime',
+        'paid_at' => 'datetime',
     ];
 
     /**
