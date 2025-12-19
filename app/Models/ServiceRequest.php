@@ -19,6 +19,7 @@ class ServiceRequest extends Model
         'audience_type',
         'service_category',
         'description',
+        'calendly_event_uri',
         'calendly_event_uuid',
         'scheduled_at',
     ];

@@ -39,7 +39,8 @@ return [
         'client_id' => env('CALENDLY_CLIENT_ID'),
         'client_secret' => env('CALENDLY_CLIENT_SECRET'),
         'webhook_secret' => env('CALENDLY_WEBHOOK_SECRET'),
-        'discovery_url' => env('CALENDLY_DISCOVERY_URL'),
+        'discovery_url' => env('CALENDLY_DISCOVERY_URL', 'https://calendly.com/colquhoun-r/discovery-call'),
+        'debug' => env('CALENDLY_DEBUG', false),
     ],
 
 ];
