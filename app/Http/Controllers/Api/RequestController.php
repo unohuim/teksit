@@ -8,6 +8,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
+use Stripe\Checkout\Session as StripeCheckoutSession;
+use Stripe\Exception\ApiErrorException;
 
 class RequestController extends Controller
 {
@@ -37,9 +39,11 @@ class RequestController extends Controller
 
     public function deposit(Request $request, ServiceRequest $serviceRequest): JsonResponse
     {
-        $request->validate([
-            'payment_method' => ['nullable', 'string'],
-        ]);
+        if ($serviceRequest->deposit_status === 'paid') {
+            return response()->json([
+                'message' => 'Deposit already paid.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
 
         if ($serviceRequest->status !== 'scheduled') {
             return response()->json([
@@ -47,23 +51,54 @@ class RequestController extends Controller
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $payment = $serviceRequest->payments()->create([
-            'amount_cents' => 12900,
-            'currency' => 'cad',
-            'provider' => 'stripe',
-            'status' => 'succeeded',
-            'reference' => null,
-            'meta' => [
-                'note' => 'Discovery deposit',
-            ],
-        ]);
+        $secret = config('services.stripe.secret');
 
-        $serviceRequest->status = 'paid';
-        $serviceRequest->save();
+        if (! $secret) {
+            return response()->json([
+                'message' => 'Stripe is not configured.',
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+
+        try {
+            // Use Stripe-hosted Checkout so card details never touch our backend.
+            $session = StripeCheckoutSession::create([
+                'mode' => 'payment',
+                'currency' => 'cad',
+                'success_url' => url("/contact?request={$serviceRequest->id}&paid=1"),
+                'cancel_url' => url("/contact?request={$serviceRequest->id}"),
+                'line_items' => [
+                    [
+                        'quantity' => 1,
+                        'price_data' => [
+                            'currency' => 'cad',
+                            'unit_amount' => 12900,
+                            'product_data' => [
+                                'name' => 'HappyTek Discovery Deposit',
+                            ],
+                        ],
+                    ],
+                ],
+                'metadata' => [
+                    'request_id' => (string) $serviceRequest->id,
+                    'email' => (string) $serviceRequest->email,
+                ],
+                'customer_email' => $serviceRequest->email,
+            ], [
+                'api_key' => $secret,
+            ]);
+        } catch (ApiErrorException $exception) {
+            return response()->json([
+                'message' => 'Unable to start Stripe Checkout.',
+            ], Response::HTTP_BAD_GATEWAY);
+        }
+
+        $serviceRequest->forceFill([
+            'stripe_checkout_session_id' => $session->id,
+            'deposit_status' => 'pending',
+        ])->save();
 
         return response()->json([
-            'payment' => $payment,
-            'redirect' => route('requests.confirmed'),
+            'checkout_url' => $session->url,
         ]);
     }
 }
