@@ -7,26 +7,25 @@ use App\Models\ServiceRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Validator;
 
 class RequestScheduleController extends Controller
 {
     public function store(Request $request, ServiceRequest $serviceRequest): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'scheduled_at' => ['required', 'date'],
+        $validated = $request->validate([
             'calendly_event_uri' => ['required', 'string'],
+            'calendly_invitee_uri' => ['required', 'string'],
         ]);
 
-        if ($validator->fails()) {
+        if ($serviceRequest->status === 'scheduled') {
             return response()->json([
-                'message' => 'The scheduled data is invalid.',
-                'errors' => $validator->errors(),
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+                'success' => true,
+                'status' => $serviceRequest->status,
+                'next_step' => 'billing',
+            ]);
         }
-
-        $validated = $validator->validated();
 
         if (! in_array($serviceRequest->status, ['started', 'scheduled'], true)) {
             return response()->json([
@@ -35,21 +34,38 @@ class RequestScheduleController extends Controller
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
+        $response = Http::withToken(config('services.calendly.token'))
+            ->get($validated['calendly_event_uri']);
+
+        if (! $response->successful()) {
+            return response()->json([
+                'error' => 'Unable to fetch Calendly event details',
+            ], Response::HTTP_BAD_GATEWAY);
+        }
+
+        $event = $response->json();
+        $scheduledAt = $event['start_time'] ?? null;
+
+        if (! $scheduledAt) {
+            return response()->json([
+                'error' => 'Calendly event missing start_time',
+            ], Response::HTTP_BAD_GATEWAY);
+        }
+
         $eventUuid = Str::afterLast($validated['calendly_event_uri'], '/');
 
-        $serviceRequest->calendly_event_uri = $validated['calendly_event_uri'];
-        $serviceRequest->calendly_event_uuid = $eventUuid;
-        $serviceRequest->scheduled_at = $validated['scheduled_at'];
-        $serviceRequest->status = 'scheduled';
-        $serviceRequest->save();
+        $serviceRequest->update([
+            'calendly_event_uri' => $validated['calendly_event_uri'],
+            'calendly_invitee_uri' => $validated['calendly_invitee_uri'],
+            'calendly_event_uuid' => $eventUuid,
+            'scheduled_at' => $scheduledAt,
+            'status' => 'scheduled',
+        ]);
 
         return response()->json([
             'success' => true,
             'status' => $serviceRequest->status,
-            'request_id' => $serviceRequest->id,
             'next_step' => 'billing',
-            'request' => $serviceRequest,
-            'message' => 'Discovery call scheduled.',
         ]);
     }
 }

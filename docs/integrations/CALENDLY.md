@@ -7,17 +7,20 @@ Inline embed uses:
 ## Required event
 - Event name: `calendly.event_scheduled`
 
+When using Calendly inline embeds, the browser does NOT receive start_time.
+The backend must fetch the scheduled event using the Calendly API via event.uri.
+Frontend must never expect or validate scheduling timestamps.
+
 ## Payload fields
 Read only:
-- `payload.event.start_time`
 - `payload.event.uri`
+- `payload.invitee.uri`
 
 ## Common failure modes
 - Calendly sends multiple postMessage events. Only `calendly.event_scheduled` is reliable.
-- Firing the POST before `start_time` exists causes 422 validation errors.
-- Missing `payload.event.uri` means the booking is not persisted.
+- Posting without `payload.event.uri` or `payload.invitee.uri` prevents persistence.
 
 ## Debug checklist
 - Enable the debug flag (`CALENDLY_DEBUG=true`) to log the full message payload.
-- Confirm `payload.event.start_time` and `payload.event.uri` are present.
-- Verify the schedule POST sends JSON with both fields.
+- Confirm `payload.event.uri` and `payload.invitee.uri` are present.
+- Verify the schedule POST sends JSON with both URIs.

@@ -2,10 +2,11 @@
 
 ## Calendly Scheduling
 - Only react to `calendly.event_scheduled`.
-- Read `payload.event.start_time` and `payload.event.uri` only.
 - Never require Calendly data before the embed fires `calendly.event_scheduled`.
-- Never validate `scheduled_at` outside the Step 2 scheduling endpoint.
+- Never assume Calendly embed payload completeness.
+- Never validate Calendly timestamps from frontend input.
 - Never advance to the next step until the backend confirms success.
+- Always fetch the Calendly event server-side using `payload.event.uri`.
 
 ## JSON-Only Responses
 - Never return HTML to JavaScript-driven endpoints.
