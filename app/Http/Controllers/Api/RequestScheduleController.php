@@ -39,6 +39,7 @@ class RequestScheduleController extends Controller
                 'success' => true,
                 'status' => $serviceRequest->status,
                 'next_step' => 'billing',
+                'request' => $serviceRequest,
             ]);
         }
 
@@ -47,6 +48,7 @@ class RequestScheduleController extends Controller
                 'success' => true,
                 'status' => $serviceRequest->status,
                 'next_step' => $serviceRequest->status === 'scheduled' ? 'billing' : null,
+                'request' => $serviceRequest,
             ]);
         }
 
@@ -55,6 +57,7 @@ class RequestScheduleController extends Controller
                 'success' => true,
                 'status' => $serviceRequest->status,
                 'next_step' => 'billing',
+                'request' => $serviceRequest,
             ]);
         }
 
@@ -120,6 +123,7 @@ class RequestScheduleController extends Controller
             'success' => true,
             'status' => $serviceRequest->status,
             'next_step' => 'billing',
+            'request' => $serviceRequest,
         ]);
     }
 }

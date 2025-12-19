@@ -37,6 +37,18 @@
 
         <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
             <div class="lg:col-span-2 space-y-8 relative">
+                <div
+                    class="absolute inset-0 z-30 flex items-center justify-center rounded-2xl bg-slate-200/70 backdrop-blur-sm"
+                    x-show="overlayActive"
+                    x-cloak>
+                    <div class="flex flex-col items-center gap-3 text-sm font-semibold text-[#0f1b2b] text-center px-6">
+                        <span class="h-10 w-10 rounded-full border-2 border-slate-300 border-t-[#1f65d1] animate-spin"></span>
+                        <span>Preparing the next step — please stay here</span>
+                        <template x-if="calendlyErrorMessage">
+                            <span class="text-xs text-[#4b5563]" x-text="calendlyErrorMessage"></span>
+                        </template>
+                    </div>
+                </div>
                 <template x-if="!request">
                     <div class="muted-card shadow-md p-6 lg:p-8 space-y-6">
                         <div class="space-y-2">
@@ -103,18 +115,6 @@
 
                 <template x-if="request && request.status === 'started'">
                     <div class="relative" x-init="initCalendlyWidget()">
-                        <div
-                            class="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-slate-200/70 backdrop-blur-sm"
-                            x-show="showOverlay"
-                            x-cloak>
-                            <div class="flex flex-col items-center gap-3 text-sm font-semibold text-[#0f1b2b] text-center px-6">
-                                <span class="h-10 w-10 rounded-full border-2 border-slate-300 border-t-[#1f65d1] animate-spin"></span>
-                                <span>Preparing the next step — please stay here</span>
-                                <template x-if="calendlyErrorMessage">
-                                    <span class="text-xs text-[#4b5563]" x-text="calendlyErrorMessage"></span>
-                                </template>
-                            </div>
-                        </div>
                         <div class="muted-card shadow-md p-6 lg:p-8 space-y-6 relative">
                         <div class="space-y-2">
                             <p class="text-sm font-semibold text-[#1f65d1]">Step 2 of 3</p>
@@ -172,7 +172,7 @@
                 </template>
 
                 <template x-if="request && request.status === 'scheduled'">
-                    <div id="billing-root" class="muted-card shadow-md p-6 lg:p-8 space-y-6" x-init="initBilling()">
+                    <div id="billing-root" class="muted-card shadow-md p-6 lg:p-8 space-y-6">
                         <div class="space-y-2">
                             <p class="text-sm font-semibold text-[#1f65d1]">Step 3 of 3</p>
                             <h2 class="text-2xl font-semibold text-[#0f1b2b]">Discovery deposit</h2>
@@ -237,6 +237,20 @@
                         </div>
                     </div>
                 </template>
+                <template x-if="request && !['started', 'scheduled', 'paid'].includes(request.status)">
+                    <div class="muted-card shadow-md p-6 lg:p-8 space-y-4">
+                        <div class="space-y-2">
+                            <p class="text-sm font-semibold text-[#1f65d1]">We need a quick reset</p>
+                            <h2 class="text-2xl font-semibold text-[#0f1b2b]">Unexpected request status</h2>
+                            <p class="text-[#2b3f54]">We couldn’t match this request to the discovery flow. Please restart and we’ll create a new request.</p>
+                        </div>
+                        <div class="flex justify-start">
+                            <button type="button" class="btn-secondary w-full sm:w-auto" @click="restartFlow">
+                                Restart
+                            </button>
+                        </div>
+                    </div>
+                </template>
             </div>
 
             <div class="card-surface shadow-sm p-6 space-y-5 lg:p-7 lg:space-y-6">
@@ -272,17 +286,21 @@
     function requestFlow() {
         return {
             loading: false,
+            overlayActive: false,
             billing: false,
             error: null,
             request: null,
             scheduledCopy: null,
             billingMounted: false,
             awaitingSchedulePersistence: false,
+            scheduleInFlight: false,
+            schedulePersisted: false,
             calendlyInitialized: false,
             calendlyLoading: false,
             calendlyErrorMessage: null,
             calendlyBaseUrl: '{{ config('services.calendly.discovery_url') }}',
             calendlyDebug: @json(config('services.calendly.debug')),
+            calendlyOrigins: ['https://calendly.com'],
             isProduction: @json(app()->environment('production')),
             stripePublicKey: @json(config('services.stripe.publishable')),
             stripe: null,
@@ -320,16 +338,28 @@
                 if (this.request?.status === 'started') return 66;
                 return 100;
             },
-            get showOverlay() {
-                return this.loading === true
-                    && this.request?.status === 'started';
-            },
             csrf() {
                 return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            },
+            normalizeRequest(request) {
+                if (!request) {
+                    return null;
+                }
+
+                const normalizedStatus = request.status === 'draft' ? 'started' : request.status;
+
+                return {
+                    ...request,
+                    status: normalizedStatus,
+                };
+            },
+            restartFlow() {
+                window.location.reload();
             },
             async submitStepOne() {
                 this.error = null;
                 this.loading = true;
+                this.overlayActive = true;
 
                 try {
                     const response = await fetch('{{ route('requests.store') }}', {
@@ -349,17 +379,17 @@
                     }
 
                     const data = await response.json();
-                    this.request = {
-                        ...data.request,
-                    };
+                    this.request = this.normalizeRequest(data.request);
                     this.scheduledCopy = null;
                     this.calendlyErrorMessage = null;
+                    this.schedulePersisted = ['scheduled', 'paid'].includes(this.request?.status);
 
                     this.$nextTick(() => {
                         this.initCalendlyWidget();
                     });
                 } catch (e) {
                     this.error = e.message || 'Something went wrong.';
+                    this.overlayActive = false;
                 } finally {
                     this.loading = false;
                 }
@@ -382,16 +412,24 @@
 
                 // Guard: only initialize after request + URL + container exist, and only once.
                 if (!this.request?.id || !url || this.calendlyInitialized) {
+                    if (this.request?.id && !url) {
+                        this.calendlyErrorMessage = 'Scheduler is unavailable right now. Please try again later.';
+                        this.calendlyLoading = false;
+                        this.overlayActive = false;
+                    }
                     return;
                 }
 
                 const widget = this.$refs.calendlyWidget;
                 if (!(widget instanceof HTMLElement)) {
+                    this.calendlyErrorMessage = 'We’re having trouble loading the scheduler right now. Please try again.';
+                    this.overlayActive = false;
                     return;
                 }
 
                 this.calendlyLoading = true;
                 this.calendlyErrorMessage = null;
+                this.overlayActive = true;
                 widget.innerHTML = '';
 
                 const waitForCalendly = () => new Promise((resolve, reject) => {
@@ -422,11 +460,15 @@
                     this.calendlyInitialized = true;
                     await this.waitForCalendlyIframe(widget);
                     this.calendlyLoading = false;
+                    this.overlayActive = false;
                 } catch (error) {
                     this.calendlyLoading = false;
                     this.calendlyInitialized = false;
                     this.calendlyErrorMessage = 'We’re having trouble loading the scheduler right now. Please try again.';
-                    console.warn('Calendly readiness could not be confirmed.', error);
+                    this.overlayActive = false;
+                    if (!this.isProduction) {
+                        console.warn('Calendly readiness could not be confirmed.', error);
+                    }
                 }
             },
             waitForCalendlyIframe(container) {
@@ -462,6 +504,7 @@
                 this.calendlyInitialized = false;
                 this.calendlyErrorMessage = null;
                 this.calendlyLoading = true;
+                this.overlayActive = true;
                 this.initCalendlyWidget();
             },
             async submitDeposit() {
@@ -588,7 +631,9 @@
                     if (!(paymentContainer instanceof HTMLElement)) {
                         this.paymentError = 'Payment form container is missing.';
                         this.paymentLoading = false;
-                        console.error('Stripe Payment Element mount failed: #payment-element not found.');
+                        if (!this.isProduction) {
+                            console.error('Stripe Payment Element mount failed: #payment-element not found.');
+                        }
                         return;
                     }
 
@@ -647,19 +692,22 @@
                 } catch (error) {
                     this.paymentError = error.message || 'Unable to start payment.';
                     this.paymentLoading = false;
-                    console.error('Stripe Payment Element failed to mount.', error);
+                    if (!this.isProduction) {
+                        console.error('Stripe Payment Element failed to mount.', error);
+                    }
                 }
             },
             init() {
                 const self = this;
-                let scheduleInFlight = false;
-
-                // Global idempotency guard: never reset after a successful booking.
-                window.__schedulePersisted ??= false;
+                this.$watch('request', (value) => {
+                    if (value?.status === 'scheduled') {
+                        this.$nextTick(() => this.initBilling());
+                    }
+                });
 
                 window.addEventListener('message', async (e) => {
                     // Only accept authoritative Calendly scheduled events.
-                    if (e.origin !== 'https://calendly.com') {
+                    if (!self.calendlyOrigins.includes(e.origin)) {
                         return;
                     }
 
@@ -668,13 +716,6 @@
                     }
 
                     if (self.request?.status !== 'started') {
-                        return;
-                    }
-
-                    const widget = self.$refs.calendlyWidget;
-                    const widgetVisible = widget && widget.offsetParent !== null;
-
-                    if (!widgetVisible) {
                         return;
                     }
 
@@ -696,11 +737,11 @@
                         return;
                     }
 
-                    if (window.__schedulePersisted || scheduleInFlight) {
+                    if (self.schedulePersisted || self.scheduleInFlight) {
                         return;
                     }
 
-                    scheduleInFlight = true;
+                    self.scheduleInFlight = true;
                     self.awaitingSchedulePersistence = true;
 
                     if (!self.isProduction) {
@@ -733,11 +774,7 @@
                             responseData = {};
                         }
 
-                        const alreadyProcessed = response.status === 422
-                            && typeof responseData?.message === 'string'
-                            && responseData.message.toLowerCase().includes('already processed');
-
-                        if ((!response.ok || !responseData.success) && !alreadyProcessed) {
+                        if (!response.ok || !responseData.success) {
                             const validationErrors = responseData.errors
                                 ? Object.values(responseData.errors).flat().join(' ')
                                 : null;
@@ -747,7 +784,7 @@
                                 || validationErrors
                                 || 'Scheduling could not be saved.';
                             self.awaitingSchedulePersistence = false;
-                            scheduleInFlight = false;
+                            self.scheduleInFlight = false;
 
                             if (!self.isProduction) {
                                 console.warn('Scheduling persistence failed', responseData);
@@ -755,12 +792,12 @@
                             return;
                         }
 
-                        window.__schedulePersisted = true;
+                        self.schedulePersisted = true;
                         self.awaitingSchedulePersistence = false;
-                        scheduleInFlight = false;
+                        self.scheduleInFlight = false;
                         self.scheduledCopy = 'Discovery call scheduled.';
                         if (responseData.request) {
-                            self.request = responseData.request;
+                            self.request = self.normalizeRequest(responseData.request);
                         } else if (responseData.next_step === 'billing') {
                             self.request = { ...(self.request || {}), status: 'scheduled' };
                         }
@@ -770,7 +807,7 @@
                         }
                     } catch (error) {
                         self.awaitingSchedulePersistence = false;
-                        scheduleInFlight = false;
+                        self.scheduleInFlight = false;
                         self.error = 'Scheduling could not be saved.';
 
                         if (!self.isProduction) {
