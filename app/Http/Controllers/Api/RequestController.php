@@ -44,11 +44,7 @@ class RequestController extends Controller
 
     public function paymentIntent(Request $request, ServiceRequest $serviceRequest): JsonResponse
     {
-        if ($serviceRequest->deposit_status === 'paid') {
-            return response()->json([
-                'message' => 'Deposit already paid.',
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
+        $serviceRequest->refresh();
 
         if ($serviceRequest->status !== 'scheduled') {
             return response()->json([
@@ -69,12 +65,6 @@ class RequestController extends Controller
 
             if ($serviceRequest->payment_intent_id) {
                 $existingIntent = $stripe->paymentIntents->retrieve($serviceRequest->payment_intent_id, []);
-
-                if (($existingIntent->status ?? null) === 'succeeded') {
-                    return response()->json([
-                        'message' => 'Deposit already paid.',
-                    ], Response::HTTP_UNPROCESSABLE_ENTITY);
-                }
 
                 if ($existingIntent->client_secret) {
                     return response()->json([
