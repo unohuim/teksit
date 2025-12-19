@@ -19,7 +19,8 @@ class RequestScheduleController extends Controller
             'calendly_invitee_uri' => ['required', 'string'],
         ]);
 
-        if ($serviceRequest->status === 'scheduled') {
+        if ($serviceRequest->status === 'scheduled' || $serviceRequest->scheduled_at) {
+            // Idempotency: already scheduled, do not overwrite scheduled_at.
             return response()->json([
                 'success' => true,
                 'status' => $serviceRequest->status,

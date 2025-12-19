@@ -333,15 +333,23 @@
                 window.addEventListener('message', function (e) {
                     // 1. HARD origin filter (ignore GTM / GA / analytics noise)
                     if (e.origin !== 'https://calendly.com') {
+                        console.info('Ignoring non-Calendly message', e.data);
                         return;
                     }
 
                     // 2. HARD event name filter
                     if (!e.data || e.data.event !== 'calendly.event_scheduled') {
+                        console.info('Ignoring non-scheduled Calendly message', e.data);
                         return;
                     }
 
-                    // 3. HARD payload shape validation
+                    // 3. HARD request id gating
+                    if (!window.requestId) {
+                        console.warn('Calendly event received before requestId is set', e.data);
+                        return;
+                    }
+
+                    // 4. HARD payload shape validation
                     const payload = e.data.payload;
 
                     if (
@@ -358,11 +366,14 @@
                         return;
                     }
 
-                    // 4. Idempotency guard
-                    if (window.persistingSchedule) return;
+                    // 5. Idempotency guard
+                    if (window.persistingSchedule) {
+                        console.info('Scheduling already persisted; ignoring duplicate message', e.data);
+                        return;
+                    }
                     window.persistingSchedule = true;
 
-                    // 5. POST ONLY URIs to backend
+                    // 6. POST ONLY URIs to backend
                     fetch(`/api/requests/${window.requestId}/scheduled`, {
                         method: 'POST',
                         headers: {
