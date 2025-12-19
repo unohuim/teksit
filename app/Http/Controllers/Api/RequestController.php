@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ServiceRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 
 class RequestController extends Controller
@@ -19,7 +20,6 @@ class RequestController extends Controller
             'audience_type' => ['required', Rule::in(['individual', 'professional', 'small_team'])],
             'service_category' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
-            'scheduled_at' => ['nullable', 'date'],
         ]);
 
         $serviceRequest = ServiceRequest::create([
@@ -29,10 +29,41 @@ class RequestController extends Controller
             'audience_type' => $validated['audience_type'],
             'service_category' => $validated['service_category'],
             'description' => $validated['description'],
-            'scheduled_at' => $validated['scheduled_at'] ?? null,
             'status' => 'started',
         ]);
 
         return response()->json(['request' => $serviceRequest]);
+    }
+
+    public function deposit(Request $request, ServiceRequest $serviceRequest): JsonResponse
+    {
+        $request->validate([
+            'payment_method' => ['nullable', 'string'],
+        ]);
+
+        if ($serviceRequest->status !== 'scheduled') {
+            return response()->json([
+                'message' => 'Schedule your discovery call first.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $payment = $serviceRequest->payments()->create([
+            'amount_cents' => 12900,
+            'currency' => 'cad',
+            'provider' => 'stripe',
+            'status' => 'succeeded',
+            'reference' => null,
+            'meta' => [
+                'note' => 'Discovery deposit',
+            ],
+        ]);
+
+        $serviceRequest->status = 'paid';
+        $serviceRequest->save();
+
+        return response()->json([
+            'payment' => $payment,
+            'redirect' => route('requests.confirmed'),
+        ]);
     }
 }

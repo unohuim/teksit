@@ -7,6 +7,10 @@ Inline embed uses:
 ## Required event
 - Event name: `calendly.event_scheduled`
 
+Calendly inline embeds emit analytics postMessage events (GTM / GA) that are NOT lifecycle events.
+The application must strictly filter by origin === 'https://calendly.com' AND event === 'calendly.event_scheduled'.
+Embed payloads do NOT include start_time; backend must fetch event details via Calendly API using event.uri.
+
 When using Calendly inline embeds, the browser does NOT receive start_time.
 The backend must fetch the scheduled event using the Calendly API via event.uri.
 Frontend must never expect or validate scheduling timestamps.
