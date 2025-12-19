@@ -49,7 +49,7 @@
                         </template>
                     </div>
                 </div>
-                <template x-if="!request">
+                <template x-if="currentStep === 'start'">
                     <div class="muted-card shadow-md p-6 lg:p-8 space-y-6">
                         <div class="space-y-2">
                             <p class="text-sm font-semibold text-[#1f65d1]">Step 1 of 3</p>
@@ -113,8 +113,8 @@
                     </div>
                 </template>
 
-                <template x-if="request && request.status === 'started'">
-                    <div class="relative" x-init="initCalendlyWidget()">
+                <template x-if="currentStep === 'schedule'">
+                    <div class="relative">
                         <div class="muted-card shadow-md p-6 lg:p-8 space-y-6 relative">
                         <div class="space-y-2">
                             <p class="text-sm font-semibold text-[#1f65d1]">Step 2 of 3</p>
@@ -152,9 +152,11 @@
                                             x-cloak>
                                             <div class="space-y-4">
                                                 <p x-text="calendlyErrorMessage"></p>
-                                                <button type="button" class="btn-secondary w-full sm:w-auto" @click="retryCalendly">
-                                                    Retry scheduler
-                                                </button>
+                                                <template x-if="calendlyRetryAvailable">
+                                                    <button type="button" class="btn-secondary w-full sm:w-auto" @click="retryCalendly">
+                                                        Retry scheduler
+                                                    </button>
+                                                </template>
                                             </div>
                                         </div>
                                     </div>
@@ -171,7 +173,7 @@
                     </div>
                 </template>
 
-                <template x-if="request && request.status === 'scheduled'">
+                <template x-if="currentStep === 'billing'">
                     <div id="billing-root" class="muted-card shadow-md p-6 lg:p-8 space-y-6">
                         <div class="space-y-2">
                             <p class="text-sm font-semibold text-[#1f65d1]">Step 3 of 3</p>
@@ -225,7 +227,7 @@
                         </div>
                     </div>
                 </template>
-                <template x-if="request && request.status === 'paid'">
+                <template x-if="currentStep === 'paid'">
                     <div class="muted-card shadow-md p-6 lg:p-8 space-y-4">
                         <div class="space-y-2">
                             <p class="text-sm font-semibold text-[#1f65d1]">Confirmation</p>
@@ -234,20 +236,6 @@
                         </div>
                         <div class="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-800">
                             Payment confirmed. Your discovery deposit is recorded.
-                        </div>
-                    </div>
-                </template>
-                <template x-if="request && !['started', 'scheduled', 'paid'].includes(request.status)">
-                    <div class="muted-card shadow-md p-6 lg:p-8 space-y-4">
-                        <div class="space-y-2">
-                            <p class="text-sm font-semibold text-[#1f65d1]">We need a quick reset</p>
-                            <h2 class="text-2xl font-semibold text-[#0f1b2b]">Unexpected request status</h2>
-                            <p class="text-[#2b3f54]">We couldn’t match this request to the discovery flow. Please restart and we’ll create a new request.</p>
-                        </div>
-                        <div class="flex justify-start">
-                            <button type="button" class="btn-secondary w-full sm:w-auto" @click="restartFlow">
-                                Restart
-                            </button>
                         </div>
                     </div>
                 </template>
@@ -298,6 +286,11 @@
             calendlyInitialized: false,
             calendlyLoading: false,
             calendlyErrorMessage: null,
+            calendlyRetryAvailable: false,
+            calendlyLoadStartedAt: null,
+            calendlyLoadTimer: null,
+            calendlyOverlayTimer: null,
+            calendlyRetryTimer: null,
             calendlyBaseUrl: '{{ config('services.calendly.discovery_url') }}',
             calendlyDebug: @json(config('services.calendly.debug')),
             calendlyOrigins: ['https://calendly.com'],
@@ -333,9 +326,16 @@
 
                 return options[this.form.audience_type] ?? ['Discovery call'];
             },
+            get currentStep() {
+                if (!this.request) return 'start';
+                if (this.request?.status === 'started') return 'schedule';
+                if (this.request?.status === 'scheduled') return 'billing';
+                if (this.request?.status === 'paid') return 'paid';
+                return 'start';
+            },
             get progressPercent() {
-                if (!this.request) return 33;
-                if (this.request?.status === 'started') return 66;
+                if (this.currentStep === 'start') return 33;
+                if (this.currentStep === 'schedule') return 66;
                 return 100;
             },
             csrf() {
@@ -356,10 +356,25 @@
             restartFlow() {
                 window.location.reload();
             },
+            showOverlay() {
+                this.overlayActive = true;
+                if (this.calendlyOverlayTimer) {
+                    clearTimeout(this.calendlyOverlayTimer);
+                }
+                this.calendlyOverlayTimer = setTimeout(() => {
+                    this.overlayActive = false;
+                }, 5000);
+            },
+            clearOverlay() {
+                if (this.calendlyOverlayTimer) {
+                    clearTimeout(this.calendlyOverlayTimer);
+                }
+                this.overlayActive = false;
+            },
             async submitStepOne() {
                 this.error = null;
                 this.loading = true;
-                this.overlayActive = true;
+                this.showOverlay();
 
                 try {
                     const response = await fetch('{{ route('requests.store') }}', {
@@ -382,14 +397,11 @@
                     this.request = this.normalizeRequest(data.request);
                     this.scheduledCopy = null;
                     this.calendlyErrorMessage = null;
+                    this.calendlyRetryAvailable = false;
                     this.schedulePersisted = ['scheduled', 'paid'].includes(this.request?.status);
-
-                    this.$nextTick(() => {
-                        this.initCalendlyWidget();
-                    });
                 } catch (e) {
                     this.error = e.message || 'Something went wrong.';
-                    this.overlayActive = false;
+                    this.clearOverlay();
                 } finally {
                     this.loading = false;
                 }
@@ -407,15 +419,15 @@
 
                 return `${this.calendlyBaseUrl}?${params.toString()}`;
             },
-            async initCalendlyWidget() {
+            startCalendlyLoad() {
                 const url = this.calendlyUrl();
 
                 // Guard: only initialize after request + URL + container exist, and only once.
-                if (!this.request?.id || !url || this.calendlyInitialized) {
+                if (this.currentStep !== 'schedule' || !this.request?.id || !url) {
                     if (this.request?.id && !url) {
                         this.calendlyErrorMessage = 'Scheduler is unavailable right now. Please try again later.';
                         this.calendlyLoading = false;
-                        this.overlayActive = false;
+                        this.clearOverlay();
                     }
                     return;
                 }
@@ -423,89 +435,125 @@
                 const widget = this.$refs.calendlyWidget;
                 if (!(widget instanceof HTMLElement)) {
                     this.calendlyErrorMessage = 'We’re having trouble loading the scheduler right now. Please try again.';
-                    this.overlayActive = false;
+                    this.clearOverlay();
                     return;
                 }
 
+                this.calendlyLoadStartedAt = Date.now();
+                this.calendlyRetryAvailable = false;
                 this.calendlyLoading = true;
                 this.calendlyErrorMessage = null;
-                this.overlayActive = true;
+                if (this.calendlyLoadTimer) {
+                    clearTimeout(this.calendlyLoadTimer);
+                }
+                this.showOverlay();
                 widget.innerHTML = '';
 
-                const waitForCalendly = () => new Promise((resolve, reject) => {
-                    const startedAt = Date.now();
-                    const check = () => {
-                        if (window.Calendly && typeof window.Calendly.initInlineWidget === 'function') {
-                            resolve();
-                            return;
-                        }
-
-                        if (Date.now() - startedAt > 10000) {
-                            reject(new Error('Calendly widget failed to load.'));
-                            return;
-                        }
-
-                        setTimeout(check, 150);
-                    };
-
-                    check();
-                });
-
-                try {
-                    await waitForCalendly();
-                    window.Calendly.initInlineWidget({
-                        url,
-                        parentElement: widget,
-                    });
-                    this.calendlyInitialized = true;
-                    await this.waitForCalendlyIframe(widget);
-                    this.calendlyLoading = false;
-                    this.overlayActive = false;
-                } catch (error) {
-                    this.calendlyLoading = false;
-                    this.calendlyInitialized = false;
-                    this.calendlyErrorMessage = 'We’re having trouble loading the scheduler right now. Please try again.';
-                    this.overlayActive = false;
-                    if (!this.isProduction) {
-                        console.warn('Calendly readiness could not be confirmed.', error);
-                    }
+                if (this.calendlyRetryTimer) {
+                    clearTimeout(this.calendlyRetryTimer);
                 }
+                this.calendlyRetryTimer = setTimeout(() => {
+                    if (this.currentStep === 'schedule' && !this.hasCalendlyIframe()) {
+                        this.calendlyRetryAvailable = true;
+                        if (!this.calendlyErrorMessage) {
+                            this.calendlyErrorMessage = 'Scheduler is taking longer than expected. Please retry.';
+                        }
+                    }
+                }, 5000);
+
+                this.attemptCalendlyLoad();
             },
-            waitForCalendlyIframe(container) {
-                // Only allow the overlay to clear once the Calendly iframe is present in the DOM.
-                return new Promise((resolve, reject) => {
-                    let timeoutId = null;
-                    const iframe = container.querySelector('iframe');
-                    if (iframe) {
-                        requestAnimationFrame(() => resolve());
+            hasCalendlyIframe() {
+                const widget = this.$refs.calendlyWidget;
+                if (!(widget instanceof HTMLElement)) {
+                    return false;
+                }
+                return Boolean(widget.querySelector('iframe'));
+            },
+            attemptCalendlyLoad() {
+                if (this.currentStep !== 'schedule') {
+                    return;
+                }
+
+                const widget = this.$refs.calendlyWidget;
+                if (!(widget instanceof HTMLElement)) {
+                    this.calendlyLoading = false;
+                    this.calendlyErrorMessage = 'We’re having trouble loading the scheduler right now. Please try again.';
+                    this.clearOverlay();
+                    return;
+                }
+
+                const deadline = (this.calendlyLoadStartedAt ?? Date.now()) + 5000;
+
+                if (!window.Calendly || typeof window.Calendly.initInlineWidget !== 'function') {
+                    if (Date.now() < deadline) {
+                        this.queueCalendlyAttempt();
                         return;
                     }
 
-                    const observer = new MutationObserver(() => {
-                        const iframeNode = container.querySelector('iframe');
-                        if (iframeNode) {
-                            observer.disconnect();
-                            if (timeoutId) {
-                                clearTimeout(timeoutId);
-                            }
-                            requestAnimationFrame(() => resolve());
-                        }
+                    this.handleCalendlyTimeout();
+                    return;
+                }
+
+                if (!this.calendlyInitialized) {
+                    window.Calendly.initInlineWidget({
+                        url: this.calendlyUrl(),
+                        parentElement: widget,
                     });
+                    this.calendlyInitialized = true;
+                }
 
-                    observer.observe(container, { childList: true, subtree: true });
+                this.pollForCalendlyIframe(widget, deadline);
+            },
+            queueCalendlyAttempt() {
+                if (this.calendlyLoadTimer) {
+                    clearTimeout(this.calendlyLoadTimer);
+                }
+                this.calendlyLoadTimer = setTimeout(() => {
+                    this.attemptCalendlyLoad();
+                }, 250);
+            },
+            pollForCalendlyIframe(container, deadline) {
+                if (this.hasCalendlyIframe()) {
+                    this.calendlyLoading = false;
+                    this.calendlyErrorMessage = null;
+                    this.clearOverlay();
+                    return;
+                }
 
-                    timeoutId = setTimeout(() => {
-                        observer.disconnect();
-                        reject(new Error('Calendly iframe timed out.'));
-                    }, 20000);
-                });
+                if (Date.now() >= deadline) {
+                    this.handleCalendlyTimeout();
+                    return;
+                }
+
+                this.queueCalendlyAttempt();
+            },
+            handleCalendlyTimeout() {
+                this.calendlyLoading = false;
+                this.calendlyRetryAvailable = true;
+                this.calendlyErrorMessage = this.calendlyErrorMessage
+                    || 'Scheduler is taking longer than expected. Please retry.';
+                this.clearOverlay();
             },
             retryCalendly() {
                 this.calendlyInitialized = false;
                 this.calendlyErrorMessage = null;
                 this.calendlyLoading = true;
-                this.overlayActive = true;
-                this.initCalendlyWidget();
+                this.calendlyRetryAvailable = false;
+                this.startCalendlyLoad();
+            },
+            resetCalendlyState() {
+                if (this.calendlyLoadTimer) {
+                    clearTimeout(this.calendlyLoadTimer);
+                }
+                if (this.calendlyRetryTimer) {
+                    clearTimeout(this.calendlyRetryTimer);
+                }
+                this.calendlyLoading = false;
+                this.calendlyErrorMessage = null;
+                this.calendlyRetryAvailable = false;
+                this.calendlyInitialized = false;
+                this.clearOverlay();
             },
             async submitDeposit() {
                 if (!this.request?.id) {
@@ -700,7 +748,18 @@
             init() {
                 const self = this;
                 this.$watch('request', (value) => {
-                    if (value?.status === 'scheduled') {
+                    this.schedulePersisted = ['scheduled', 'paid'].includes(value?.status);
+                });
+                this.$watch('currentStep', (value, oldValue) => {
+                    if (value !== 'schedule') {
+                        this.resetCalendlyState();
+                    }
+
+                    if (value === 'schedule' && oldValue !== 'schedule') {
+                        this.$nextTick(() => this.startCalendlyLoad());
+                    }
+
+                    if (value === 'billing' && oldValue !== 'billing') {
                         this.$nextTick(() => this.initBilling());
                     }
                 });
