@@ -45,7 +45,7 @@ return [
 
     'stripe' => [
         'secret' => env('STRIPE_SECRET'),
-        'publishable' => env('STRIPE_PUBLISHABLE'),
+        'publishable' => env('STRIPE_PUBLISHABLE_KEY'),
         'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
     ],
 
