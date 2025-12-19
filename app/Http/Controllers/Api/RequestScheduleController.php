@@ -44,9 +44,10 @@ class RequestScheduleController extends Controller
 
         if (! in_array($serviceRequest->status, ['started', 'scheduled'], true)) {
             return response()->json([
-                'success' => false,
-                'message' => 'Request already processed.',
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+                'success' => true,
+                'status' => $serviceRequest->status,
+                'next_step' => $serviceRequest->status === 'scheduled' ? 'billing' : null,
+            ]);
         }
 
         if ($serviceRequest->calendly_event_uuid && $serviceRequest->calendly_event_uuid === $eventUuid) {

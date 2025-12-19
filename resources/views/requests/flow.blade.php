@@ -4,6 +4,7 @@
 
 @section('content')
 <link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet">
+<script src="https://assets.calendly.com/assets/external/widget.js" async data-calendly-script></script>
 
 <section id="request-start" class="bg-white/70 backdrop-blur-sm py-14 sm:py-18" x-data="requestFlow()" x-init="init()">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
@@ -123,10 +124,6 @@
                                         style="min-width:320px;height:700px;">
                                     </div>
 
-                                    <script
-                                        src="https://assets.calendly.com/assets/external/widget.js"
-                                        async>
-                                    </script>
                                 </div>
                             </template>
                         </div>
@@ -199,6 +196,7 @@
             request: null,
             scheduledCopy: null,
             billingMounted: false,
+            calendlyInitialized: false,
             calendlyBaseUrl: '{{ config('services.calendly.discovery_url') }}',
             calendlyDebug: @json(config('services.calendly.debug')),
             isProduction: @json(app()->environment('production')),
@@ -255,7 +253,6 @@
 
                     const data = await response.json();
                     this.request = data.request;
-                    window.requestId = data.request?.id;
                     this.step = 'book';
                     this.scheduledCopy = null;
 
@@ -282,12 +279,15 @@
                 return `${this.calendlyBaseUrl}?${params.toString()}`;
             },
             async initCalendlyWidget() {
-                if (!this.request || !this.calendlyBaseUrl) {
+                const url = this.calendlyUrl();
+
+                // Guard: only initialize after request + URL + container exist, and only once.
+                if (!this.request?.id || !url || this.calendlyInitialized) {
                     return;
                 }
 
                 const widget = this.$refs.calendlyWidget;
-                if (!widget) {
+                if (!(widget instanceof HTMLElement)) {
                     return;
                 }
 
@@ -315,9 +315,10 @@
                 try {
                     await waitForCalendly();
                     window.Calendly.initInlineWidget({
-                        url: this.calendlyUrl(),
+                        url,
                         parentElement: widget,
                     });
+                    this.calendlyInitialized = true;
                 } catch (error) {
                     this.error = error.message || 'Calendly failed to load.';
                 }
@@ -367,9 +368,9 @@
             init() {
                 const self = this;
                 let scheduleInFlight = false;
-                let schedulePersisted = false;
 
-                window.requestId ??= null;
+                // Global idempotency guard: never reset after a successful booking.
+                window.__schedulePersisted ??= false;
 
                 this.$watch('step', (value) => {
                     if (value === 'billing') {
@@ -384,11 +385,12 @@
                 });
 
                 window.addEventListener('message', async (e) => {
+                    // Only accept authoritative Calendly scheduled events.
                     if (e.origin !== 'https://calendly.com') {
                         return;
                     }
 
-                    if (!e.data || e.data.event !== 'calendly.event_scheduled') {
+                    if (!e.data || typeof e.data !== 'object' || e.data.event !== 'calendly.event_scheduled') {
                         return;
                     }
 
@@ -405,24 +407,23 @@
 
                     const payload = e.data.payload;
 
-                    if (
-                        !payload ||
-                        !payload.event ||
-                        !payload.event.uri ||
-                        !payload.invitee ||
-                        !payload.invitee.uri
-                    ) {
+                    if (!payload?.event?.uri || !payload?.invitee?.uri) {
+                        if (!self.isProduction) {
+                            console.warn('Calendly payload missing required fields', e.data);
+                        }
                         return;
                     }
 
                     const requestId = Number(self.request?.id);
 
                     if (!Number.isInteger(requestId) || requestId <= 0) {
-                        self.error = 'Missing request id; please refresh and try again.';
+                        if (!self.isProduction) {
+                            console.warn('Calendly scheduled event received without request id', e.data);
+                        }
                         return;
                     }
 
-                    if (schedulePersisted || scheduleInFlight) {
+                    if (window.__schedulePersisted || scheduleInFlight) {
                         return;
                     }
 
@@ -458,7 +459,11 @@
                             responseData = {};
                         }
 
-                        if (!response.ok || !responseData.success) {
+                        const alreadyProcessed = response.status === 422
+                            && typeof responseData?.message === 'string'
+                            && responseData.message.toLowerCase().includes('already processed');
+
+                        if ((!response.ok || !responseData.success) && !alreadyProcessed) {
                             const validationErrors = responseData.errors
                                 ? Object.values(responseData.errors).flat().join(' ')
                                 : null;
@@ -475,7 +480,7 @@
                             return;
                         }
 
-                        schedulePersisted = true;
+                        window.__schedulePersisted = true;
                         scheduleInFlight = false;
                         self.scheduledCopy = 'Discovery call scheduled.';
                         self.step = 'billing';
