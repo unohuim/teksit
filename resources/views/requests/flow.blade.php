@@ -388,6 +388,7 @@
                     this.calendlyErrorMessage = null;
                     this.calendlyRetryAvailable = false;
                     this.schedulePersisted = ['scheduled', 'paid'].includes(this.request?.status);
+                    this.clearOverlay();
                 } catch (e) {
                     this.error = e.message || 'Something went wrong.';
                     this.clearOverlay();
@@ -435,7 +436,6 @@
                 if (this.calendlyLoadTimer) {
                     clearTimeout(this.calendlyLoadTimer);
                 }
-                this.showOverlay();
                 widget.innerHTML = '';
 
                 this.attemptCalendlyLoad();
@@ -643,12 +643,6 @@
             },
             async setupPaymentElement() {
                 try {
-                    if (this.request?.status !== 'scheduled') {
-                        this.paymentError = 'Schedule your call first.';
-                        this.paymentLoading = false;
-                        return;
-                    }
-
                     const paymentContainer = document.querySelector('#payment-element');
                     if (!(paymentContainer instanceof HTMLElement)) {
                         this.paymentError = 'Payment form container is missing.';
@@ -730,6 +724,7 @@
                     }
 
                     if (value === 'schedule' && oldValue !== 'schedule') {
+                        this.clearOverlay();
                         this.$nextTick(() => this.startCalendlyLoad());
                     }
 
@@ -825,15 +820,25 @@
                             return;
                         }
 
-                        self.schedulePersisted = true;
+                        const nextRequest = responseData.request
+                            ? self.normalizeRequest(responseData.request)
+                            : null;
+
+                        if (!nextRequest) {
+                            self.error = responseData.message
+                                || responseData.error
+                                || 'Scheduling could not be saved.';
+                            self.awaitingSchedulePersistence = false;
+                            self.scheduleInFlight = false;
+                            return;
+                        }
+
+                        self.request = nextRequest;
                         self.awaitingSchedulePersistence = false;
                         self.scheduleInFlight = false;
-                        self.scheduledCopy = 'Discovery call scheduled.';
-                        if (responseData.request) {
-                            self.request = self.normalizeRequest(responseData.request);
-                        } else if (responseData.next_step === 'billing') {
-                            self.request = { ...(self.request || {}), status: 'scheduled' };
-                        }
+                        self.scheduledCopy = ['scheduled', 'paid'].includes(nextRequest.status)
+                            ? 'Discovery call scheduled.'
+                            : null;
 
                         if (!self.isProduction) {
                             console.info('Scheduling persisted successfully', responseData);
