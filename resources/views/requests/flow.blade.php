@@ -105,7 +105,7 @@
                     <div class="relative" x-init="initCalendlyWidget()">
                         <div
                             class="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-slate-200/70 backdrop-blur-sm"
-                            x-show="isAdvancingStep"
+                            x-show="showOverlay"
                             x-cloak>
                             <div class="flex flex-col items-center gap-3 text-sm font-semibold text-[#0f1b2b] text-center px-6">
                                 <span class="h-10 w-10 rounded-full border-2 border-slate-300 border-t-[#1f65d1] animate-spin"></span>
@@ -277,7 +277,7 @@
             request: null,
             scheduledCopy: null,
             billingMounted: false,
-            isAdvancingStep: false,
+            awaitingSchedulePersistence: false,
             calendlyInitialized: false,
             calendlyLoading: false,
             calendlyErrorMessage: null,
@@ -320,13 +320,17 @@
                 if (this.request?.status === 'started') return 66;
                 return 100;
             },
+            get showOverlay() {
+                return Boolean(this.request)
+                    && this.request?.status === 'started'
+                    && this.awaitingSchedulePersistence === true;
+            },
             csrf() {
                 return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
             },
             async submitStepOne() {
                 this.error = null;
                 this.loading = true;
-                this.isAdvancingStep = true;
 
                 try {
                     const response = await fetch('{{ route('requests.store') }}', {
@@ -358,7 +362,6 @@
                     });
                 } catch (e) {
                     this.error = e.message || 'Something went wrong.';
-                    this.isAdvancingStep = false;
                 } finally {
                     this.loading = false;
                 }
@@ -381,17 +384,11 @@
 
                 // Guard: only initialize after request + URL + container exist, and only once.
                 if (!this.request?.id || !url || this.calendlyInitialized) {
-                    if (this.isAdvancingStep && !this.calendlyInitialized) {
-                        console.warn('Calendly initialization skipped before iframe could be detected.');
-                    }
                     return;
                 }
 
                 const widget = this.$refs.calendlyWidget;
                 if (!(widget instanceof HTMLElement)) {
-                    if (this.isAdvancingStep) {
-                        console.warn('Calendly widget container missing while advancing steps.');
-                    }
                     return;
                 }
 
@@ -427,14 +424,11 @@
                     this.calendlyInitialized = true;
                     await this.waitForCalendlyIframe(widget);
                     this.calendlyLoading = false;
-                    this.isAdvancingStep = false;
                 } catch (error) {
                     this.calendlyLoading = false;
                     this.calendlyInitialized = false;
                     this.calendlyErrorMessage = 'We’re having trouble loading the scheduler right now. Please try again.';
-                    if (this.isAdvancingStep) {
-                        console.warn('Calendly readiness could not be confirmed. Keeping the overlay visible.', error);
-                    }
+                    console.warn('Calendly readiness could not be confirmed.', error);
                 }
             },
             waitForCalendlyIframe(container) {
@@ -709,6 +703,7 @@
                     }
 
                     scheduleInFlight = true;
+                    self.awaitingSchedulePersistence = true;
 
                     if (!self.isProduction) {
                         console.info('Calendly scheduled event received', {
@@ -753,6 +748,7 @@
                                 || responseData.error
                                 || validationErrors
                                 || 'Scheduling could not be saved.';
+                            self.awaitingSchedulePersistence = false;
                             scheduleInFlight = false;
 
                             if (!self.isProduction) {
@@ -762,6 +758,7 @@
                         }
 
                         window.__schedulePersisted = true;
+                        self.awaitingSchedulePersistence = false;
                         scheduleInFlight = false;
                         self.scheduledCopy = 'Discovery call scheduled.';
                         if (responseData.request) {
@@ -774,6 +771,7 @@
                             console.info('Scheduling persisted successfully', responseData);
                         }
                     } catch (error) {
+                        self.awaitingSchedulePersistence = false;
                         scheduleInFlight = false;
                         self.error = 'Scheduling could not be saved.';
 
