@@ -4,7 +4,6 @@
 
 @section('content')
 <link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet">
-<script src="https://assets.calendly.com/assets/external/widget.js" async></script>
 
 <section id="request-start" class="bg-white/70 backdrop-blur-sm py-14 sm:py-18" x-data="requestFlow()" x-init="init()">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
@@ -101,29 +100,44 @@
                     </form>
                 </div>
 
-                <div class="muted-card shadow-md p-6 lg:p-8 space-y-6" x-show="step === 'schedule'" x-cloak>
-                    <div class="space-y-2">
-                        <p class="text-sm font-semibold text-[#1f65d1]">Step 2 of 3</p>
-                        <h2 class="text-2xl font-semibold text-[#0f1b2b]">Schedule discovery call</h2>
-                        <p class="text-[#2b3f54]">Inline Calendly embed. One event only. We pass your request ID quietly.</p>
-                    </div>
-                    <div class="space-y-3">
-                        <div class="flex items-center justify-between flex-wrap gap-3">
-                            <div>
-                                <p class="text-sm font-semibold text-[#0f1b2b]">Discovery call</p>
-                                <p class="text-sm text-[#2b3f54]">Stay on this page. We prefill your name, email, and request ID.</p>
+                <template x-if="step === 'schedule'">
+                    <div class="muted-card shadow-md p-6 lg:p-8 space-y-6">
+                        <div class="space-y-2">
+                            <p class="text-sm font-semibold text-[#1f65d1]">Step 2 of 3</p>
+                            <h2 class="text-2xl font-semibold text-[#0f1b2b]">Schedule discovery call</h2>
+                            <p class="text-[#2b3f54]">Inline Calendly embed. One event only. We pass your request ID quietly.</p>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between flex-wrap gap-3">
+                                <div>
+                                    <p class="text-sm font-semibold text-[#0f1b2b]">Discovery call</p>
+                                    <p class="text-sm text-[#2b3f54]">Stay on this page. We prefill your name, email, and request ID.</p>
+                                </div>
+                                <div class="text-xs px-3 py-1 rounded-full bg-[#e8f2ff] text-[#1f65d1] font-semibold">No pricing shown</div>
                             </div>
-                            <div class="text-xs px-3 py-1 rounded-full bg-[#e8f2ff] text-[#1f65d1] font-semibold">No pricing shown</div>
+                            <template x-if="request">
+                                <div class="space-y-6">
+                                    <div
+                                        class="calendly-inline-widget border border-[#cfe0c5] rounded-2xl overflow-hidden bg-white"
+                                        :data-url="calendlyUrl()"
+                                        style="min-width:320px;height:700px;">
+                                    </div>
+
+                                    <script
+                                        src="https://assets.calendly.com/assets/external/widget.js"
+                                        async>
+                                    </script>
+                                </div>
+                            </template>
                         </div>
-                        <div class="calendly-inline-widget border border-[#cfe0c5] rounded-2xl overflow-hidden bg-white" x-ref="calendlyWidget" style="min-width:320px;height:700px;"></div>
+                        <template x-if="scheduledCopy">
+                            <div class="bg-green-50 border border-green-200 rounded-xl p-4 space-y-1">
+                                <p class="font-semibold text-green-800">Locked in</p>
+                                <p class="text-green-800" x-text="scheduledCopy"></p>
+                            </div>
+                        </template>
                     </div>
-                    <template x-if="scheduledCopy">
-                        <div class="bg-green-50 border border-green-200 rounded-xl p-4 space-y-1">
-                            <p class="font-semibold text-green-800">Locked in</p>
-                            <p class="text-green-800" x-text="scheduledCopy"></p>
-                        </div>
-                    </template>
-                </div>
+                </template>
 
                 <div class="muted-card shadow-md p-6 lg:p-8 space-y-6" x-show="step === 'billing'" x-cloak>
                     <div class="space-y-2">
@@ -239,7 +253,6 @@
                     this.request = data.request;
                     this.step = 'schedule';
                     this.scheduledCopy = null;
-                    this.loadCalendly();
                 } catch (e) {
                     this.error = e.message || 'Something went wrong.';
                 } finally {
@@ -251,35 +264,13 @@
                     return '';
                 }
 
-                const url = new URL(this.calendlyBaseUrl);
-                url.searchParams.set('request_id', this.request.id);
-                return url.toString();
-            },
-            loadCalendly() {
-                if (!this.calendlyBaseUrl) {
-                    this.error = 'Calendly is not configured right now.';
-                    return;
-                }
-
-                this.$nextTick(() => {
-                    const widget = this.$refs.calendlyWidget;
-                    if (!widget || !window.Calendly || typeof Calendly.initInlineWidget !== 'function') {
-                        return;
-                    }
-
-                    Calendly.initInlineWidget({
-                        url: this.calendlyUrl(),
-                        parentElement: widget,
-                        prefill: {
-                            name: this.request.name,
-                            email: this.request.email,
-                        },
-                        utm: {
-                            content: `${this.request.id}`,
-                            source: 'happytek.ca',
-                        },
-                    });
+                const params = new URLSearchParams({
+                    name: this.request.name ?? '',
+                    email: this.request.email ?? '',
+                    request_id: this.request.id,
                 });
+
+                return `${this.calendlyBaseUrl}?${params.toString()}`;
             },
             async persistSchedule(details) {
                 if (!this.request?.id) return;
