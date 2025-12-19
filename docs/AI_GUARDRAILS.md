@@ -8,7 +8,10 @@
 - Never parse Calendly timestamps in JS.
 - Never validate Calendly timestamps from frontend input.
 - Never advance to the next step until the backend confirms success.
-- Never validate scheduled_at from frontend input.
+- Never set the "persisted" guard before backend success.
+- Never depend on Calendly messages firing exactly once.
+- Never let mail failures block scheduling progression.
+- Never validate `scheduled_at` from frontend input.
 - Always fetch the Calendly event server-side using `payload.event.uri`.
 
 ## JSON-Only Responses

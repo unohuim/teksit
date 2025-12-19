@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/requests', [RequestController::class, 'store'])->name('requests.store');
 Route::post('/requests/{request}/deposit', [RequestController::class, 'deposit'])->name('requests.deposit');
-Route::post('/requests/{request}/scheduled', [RequestScheduleController::class, 'store'])
+Route::post('/requests/{serviceRequest}/scheduled', [RequestScheduleController::class, 'store'])
     ->name('requests.scheduled')
     ->missing(function () {
         return response()->json([

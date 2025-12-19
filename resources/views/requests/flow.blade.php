@@ -17,7 +17,7 @@
             <div class="flex items-center gap-4">
                 <div class="flex-1">
                     <div class="flex justify-between text-[11px] sm:text-xs font-semibold text-[#1f65d1]">
-                        <span>Step 1 · Contact</span>
+                        <span>Step 1 · Start request</span>
                         <span>Step 2 · Schedule</span>
                         <span>Step 3 · Billing</span>
                     </div>
@@ -38,7 +38,7 @@
                 <div class="muted-card shadow-md p-6 lg:p-8 space-y-6" x-show="step === 'contact'" x-cloak>
                     <div class="space-y-2">
                         <p class="text-sm font-semibold text-[#1f65d1]">Step 1 of 3</p>
-                        <h2 class="text-2xl font-semibold text-[#0f1b2b]">Contact details</h2>
+                        <h2 class="text-2xl font-semibold text-[#0f1b2b]">Start your request</h2>
                         <p class="text-[#2b3f54]">We’ll create your request immediately so we can prefill Calendly and keep everything on happytek.ca.</p>
                     </div>
                     <form class="space-y-5" @submit.prevent="submitStepOne">
@@ -95,12 +95,12 @@
                                 <span x-show="!loading">Schedule discovery call</span>
                                 <span x-show="loading">Saving...</span>
                             </button>
-                            <p class="text-sm text-[#2b3f54]">We save instantly so we can prefill Calendly.</p>
+                            <p class="text-sm text-[#2b3f54]">We save instantly so we can prefill Calendly and save as started.</p>
                         </div>
                     </form>
                 </div>
 
-                <template x-if="step === 'schedule'">
+                <template x-if="step === 'book'">
                     <div class="muted-card shadow-md p-6 lg:p-8 space-y-6">
                         <div class="space-y-2">
                             <p class="text-sm font-semibold text-[#1f65d1]">Step 2 of 3</p>
@@ -119,7 +119,7 @@
                                 <div class="space-y-6">
                                     <div
                                         class="calendly-inline-widget border border-[#cfe0c5] rounded-2xl overflow-hidden bg-white"
-                                        :data-url="calendlyUrl()"
+                                        x-ref="calendlyWidget"
                                         style="min-width:320px;height:700px;">
                                     </div>
 
@@ -201,6 +201,7 @@
             billingMounted: false,
             calendlyBaseUrl: '{{ config('services.calendly.discovery_url') }}',
             calendlyDebug: @json(config('services.calendly.debug')),
+            isProduction: @json(app()->environment('production')),
             audiences: [
                 { value: 'individual', label: 'Individual' },
                 { value: 'professional', label: 'Professional' },
@@ -225,7 +226,7 @@
             },
             get progressPercent() {
                 if (this.step === 'contact') return 33;
-                if (this.step === 'schedule') return 66;
+                if (this.step === 'book') return 66;
                 return 100;
             },
             csrf() {
@@ -255,8 +256,12 @@
                     const data = await response.json();
                     this.request = data.request;
                     window.requestId = data.request?.id;
-                    this.step = 'schedule';
+                    this.step = 'book';
                     this.scheduledCopy = null;
+
+                    this.$nextTick(() => {
+                        this.initCalendlyWidget();
+                    });
                 } catch (e) {
                     this.error = e.message || 'Something went wrong.';
                 } finally {
@@ -275,6 +280,47 @@
                 });
 
                 return `${this.calendlyBaseUrl}?${params.toString()}`;
+            },
+            async initCalendlyWidget() {
+                if (!this.request || !this.calendlyBaseUrl) {
+                    return;
+                }
+
+                const widget = this.$refs.calendlyWidget;
+                if (!widget) {
+                    return;
+                }
+
+                widget.innerHTML = '';
+
+                const waitForCalendly = () => new Promise((resolve, reject) => {
+                    const startedAt = Date.now();
+                    const check = () => {
+                        if (window.Calendly && typeof window.Calendly.initInlineWidget === 'function') {
+                            resolve();
+                            return;
+                        }
+
+                        if (Date.now() - startedAt > 3000) {
+                            reject(new Error('Calendly widget failed to load.'));
+                            return;
+                        }
+
+                        setTimeout(check, 150);
+                    };
+
+                    check();
+                });
+
+                try {
+                    await waitForCalendly();
+                    window.Calendly.initInlineWidget({
+                        url: this.calendlyUrl(),
+                        parentElement: widget,
+                    });
+                } catch (error) {
+                    this.error = error.message || 'Calendly failed to load.';
+                }
             },
             async submitDeposit() {
                 if (!this.request?.id) {
@@ -319,35 +365,44 @@
                 this.billingMounted = true;
             },
             init() {
+                const self = this;
+                let scheduleInFlight = false;
+                let schedulePersisted = false;
+
                 window.requestId ??= null;
-                window.persistingSchedule ??= false;
 
                 this.$watch('step', (value) => {
                     if (value === 'billing') {
                         this.initBilling();
                     }
+
+                    if (value === 'book') {
+                        this.$nextTick(() => {
+                            this.initCalendlyWidget();
+                        });
+                    }
                 });
 
-                window.addEventListener('message', function (e) {
-                    // 1. HARD origin filter (ignore GTM / GA / analytics noise)
+                window.addEventListener('message', async (e) => {
                     if (e.origin !== 'https://calendly.com') {
-                        console.info('Ignoring non-Calendly message', e.data);
                         return;
                     }
 
-                    // 2. HARD event name filter
                     if (!e.data || e.data.event !== 'calendly.event_scheduled') {
-                        console.info('Ignoring non-scheduled Calendly message', e.data);
                         return;
                     }
 
-                    // 3. HARD request id gating
-                    if (!window.requestId) {
-                        console.warn('Calendly event received before requestId is set', e.data);
+                    if (self.step !== 'book') {
                         return;
                     }
 
-                    // 4. HARD payload shape validation
+                    const widget = self.$refs.calendlyWidget;
+                    const widgetVisible = widget && widget.offsetParent !== null;
+
+                    if (!widgetVisible) {
+                        return;
+                    }
+
                     const payload = e.data.payload;
 
                     if (
@@ -357,51 +412,86 @@
                         !payload.invitee ||
                         !payload.invitee.uri
                     ) {
-                        console.error(
-                            'Calendly embed payload missing required fields',
-                            e.data
-                        );
                         return;
                     }
 
-                    // 5. Idempotency guard (lock only after backend success)
-                    if (window.persistingSchedule) {
-                        console.info('Scheduling already persisted; ignoring duplicate message', e.data);
+                    const requestId = Number(self.request?.id);
+
+                    if (!Number.isInteger(requestId) || requestId <= 0) {
+                        self.error = 'Missing request id; please refresh and try again.';
                         return;
                     }
 
-                    console.info('Accepted Calendly scheduled event', payload);
+                    if (schedulePersisted || scheduleInFlight) {
+                        return;
+                    }
 
-                    // 6. POST ONLY URIs to backend
-                    fetch(`/api/requests/${window.requestId}/scheduled`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            calendly_event_uri: payload.event.uri,
-                            calendly_invitee_uri: payload.invitee.uri,
-                        }),
-                    })
-                        .then(res => res.json())
-                        .then(data => {
-                            if (data.success) {
-                                window.persistingSchedule = true;
-                                console.info('Scheduling persisted successfully', data);
-                                // advance to Step 3 ONLY after backend confirmation
-                                this.scheduledCopy = 'Discovery call scheduled.';
-                                this.step = 'billing';
-                            } else {
-                                console.warn('Scheduling persistence failed', data);
-                                window.persistingSchedule = false;
-                            }
-                        })
-                        .catch(() => {
-                            console.error('Scheduling persistence request failed');
-                            window.persistingSchedule = false;
+                    scheduleInFlight = true;
+
+                    if (!self.isProduction) {
+                        console.info('Calendly scheduled event received', {
+                            requestId,
+                            eventUri: payload.event.uri,
+                            inviteeUri: payload.invitee.uri,
                         });
-                }.bind(this));
+                    }
+
+                    let responseData = {};
+
+                    try {
+                        const response = await fetch(`/api/requests/${requestId}/scheduled`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': self.csrf(),
+                            },
+                            body: JSON.stringify({
+                                calendly_event_uri: payload.event.uri,
+                                calendly_invitee_uri: payload.invitee.uri,
+                            }),
+                        });
+
+                        try {
+                            responseData = await response.json();
+                        } catch (error) {
+                            responseData = {};
+                        }
+
+                        if (!response.ok || !responseData.success) {
+                            const validationErrors = responseData.errors
+                                ? Object.values(responseData.errors).flat().join(' ')
+                                : null;
+
+                            self.error = responseData.message
+                                || responseData.error
+                                || validationErrors
+                                || 'Scheduling could not be saved.';
+                            scheduleInFlight = false;
+
+                            if (!self.isProduction) {
+                                console.warn('Scheduling persistence failed', responseData);
+                            }
+                            return;
+                        }
+
+                        schedulePersisted = true;
+                        scheduleInFlight = false;
+                        self.scheduledCopy = 'Discovery call scheduled.';
+                        self.step = 'billing';
+
+                        if (!self.isProduction) {
+                            console.info('Scheduling persisted successfully', responseData);
+                        }
+                    } catch (error) {
+                        scheduleInFlight = false;
+                        self.error = 'Scheduling could not be saved.';
+
+                        if (!self.isProduction) {
+                            console.warn('Scheduling persistence request failed', error);
+                        }
+                    }
+                });
             },
         };
     }
