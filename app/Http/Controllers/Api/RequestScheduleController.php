@@ -42,12 +42,19 @@ class RequestScheduleController extends Controller
             ]);
         }
 
-        if (! in_array($serviceRequest->status, ['started', 'scheduled'], true)) {
+        if ($serviceRequest->status === 'paid') {
             return response()->json([
                 'success' => true,
                 'status' => $serviceRequest->status,
                 'next_step' => $serviceRequest->status === 'scheduled' ? 'billing' : null,
             ]);
+        }
+
+        if (! in_array($serviceRequest->status, ['started', 'scheduled'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Scheduling is not available for this request.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         if ($serviceRequest->calendly_event_uuid && $serviceRequest->calendly_event_uuid === $eventUuid) {
