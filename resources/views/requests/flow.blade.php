@@ -37,7 +37,7 @@
 
         <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
             <div class="lg:col-span-2 space-y-8 relative">
-                <div class="muted-card shadow-md p-6 lg:p-8 space-y-6" x-show="step === 'contact'" x-cloak>
+                <div class="muted-card shadow-md p-6 lg:p-8 space-y-6" x-show="!request || request.status === 'started'" x-cloak>
                     <div class="space-y-2">
                         <p class="text-sm font-semibold text-[#1f65d1]">Step 1 of 3</p>
                         <h2 class="text-2xl font-semibold text-[#0f1b2b]">Start your request</h2>
@@ -99,7 +99,7 @@
                     </form>
                 </div>
 
-                <template x-if="step === 'book'">
+                <template x-if="request && request.status === 'started'">
                     <div class="relative">
                         <div
                             class="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-slate-200/70 backdrop-blur-sm"
@@ -169,58 +169,72 @@
                     </div>
                 </template>
 
-                <div id="billing-root" class="muted-card shadow-md p-6 lg:p-8 space-y-6" x-show="step === 'billing'" x-cloak>
-                    <div class="space-y-2">
-                        <p class="text-sm font-semibold text-[#1f65d1]">Step 3 of 3</p>
-                        <h2 class="text-2xl font-semibold text-[#0f1b2b]">Discovery deposit</h2>
-                        <p class="text-[#2b3f54]">Secure your spot with the $129 discovery deposit. The call itself is free.</p>
-                    </div>
-                    <div class="bg-white border border-[#dbe6f6] rounded-xl p-4 space-y-2">
-                        <p class="font-semibold text-[#0f1b2b]">How the deposit works</p>
-                        <ul class="list-disc list-inside text-sm text-[#2b3f54] space-y-1">
-                            <li>If the issue is solved on the call, the $129 is the service fee.</li>
-                            <li>If we scope a larger project, the $129 is credited toward the quote.</li>
-                            <li>If the project is rejected, the $129 remains the discovery fee.</li>
-                        </ul>
-                    </div>
-                    <div class="space-y-4">
-                        <div class="bg-white border border-[#dbe6f6] rounded-xl p-4 flex items-center justify-between">
-                            <div>
-                                <p class="text-sm font-semibold text-[#0f1b2b]">Amount due</p>
-                                <p class="text-xs text-[#2b3f54]">Discovery deposit</p>
-                            </div>
-                            <p class="text-lg font-semibold text-[#0f1b2b]">$129 CAD</p>
+                <template x-if="request?.status === 'scheduled'">
+                    <div id="billing-root" class="muted-card shadow-md p-6 lg:p-8 space-y-6" x-init="initBilling()">
+                        <div class="space-y-2">
+                            <p class="text-sm font-semibold text-[#1f65d1]">Step 3 of 3</p>
+                            <h2 class="text-2xl font-semibold text-[#0f1b2b]">Discovery deposit</h2>
+                            <p class="text-[#2b3f54]">Secure your spot with the $129 discovery deposit. The call itself is free.</p>
                         </div>
-                        <div class="bg-white border border-[#dbe6f6] rounded-xl p-4 relative">
-                            <div id="payment-element" class="min-h-[200px]"></div>
-                            <div
-                                class="absolute inset-0 flex items-center justify-center rounded-xl bg-slate-200/60 text-sm font-semibold text-[#0f1b2b]"
-                                x-show="paymentLoading"
-                                x-cloak>
-                                <div class="flex flex-col items-center gap-3">
-                                    <span class="h-8 w-8 rounded-full border-2 border-slate-300 border-t-[#1f65d1] animate-spin"></span>
-                                    <span>Loading secure payment form…</span>
+                        <div class="bg-white border border-[#dbe6f6] rounded-xl p-4 space-y-2">
+                            <p class="font-semibold text-[#0f1b2b]">How the deposit works</p>
+                            <ul class="list-disc list-inside text-sm text-[#2b3f54] space-y-1">
+                                <li>If the issue is solved on the call, the $129 is the service fee.</li>
+                                <li>If we scope a larger project, the $129 is credited toward the quote.</li>
+                                <li>If the project is rejected, the $129 remains the discovery fee.</li>
+                            </ul>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="bg-white border border-[#dbe6f6] rounded-xl p-4 flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-semibold text-[#0f1b2b]">Amount due</p>
+                                    <p class="text-xs text-[#2b3f54]">Discovery deposit</p>
+                                </div>
+                                <p class="text-lg font-semibold text-[#0f1b2b]">$129 CAD</p>
+                            </div>
+                            <div class="bg-white border border-[#dbe6f6] rounded-xl p-4 relative">
+                                <div id="payment-element" class="min-h-[200px]"></div>
+                                <div
+                                    class="absolute inset-0 flex items-center justify-center rounded-xl bg-slate-200/60 text-sm font-semibold text-[#0f1b2b]"
+                                    x-show="paymentLoading"
+                                    x-cloak>
+                                    <div class="flex flex-col items-center gap-3">
+                                        <span class="h-8 w-8 rounded-full border-2 border-slate-300 border-t-[#1f65d1] animate-spin"></span>
+                                        <span>Loading secure payment form…</span>
+                                    </div>
                                 </div>
                             </div>
+                            <template x-if="paymentError">
+                                <div class="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700" x-text="paymentError"></div>
+                            </template>
+                            <template x-if="paymentSuccess">
+                                <div class="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-800">
+                                    Payment confirmed. Your discovery deposit is recorded.
+                                </div>
+                            </template>
+                            <form class="flex justify-end" @submit.prevent="submitDeposit">
+                                <button
+                                    type="submit"
+                                    class="btn-primary w-full sm:w-auto"
+                                    :disabled="billing || paymentSuccess || !paymentElementReady"
+                                    x-text="billing ? 'Processing...' : 'Pay $129 CAD'"></button>
+                            </form>
+                            <p class="text-sm text-[#2b3f54]">Your request is marked paid immediately after a successful charge.</p>
                         </div>
-                        <template x-if="paymentError">
-                            <div class="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700" x-text="paymentError"></div>
-                        </template>
-                        <template x-if="paymentSuccess">
-                            <div class="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-800">
-                                Payment confirmed. Your discovery deposit is recorded.
-                            </div>
-                        </template>
-                        <form class="flex justify-end" @submit.prevent="submitDeposit">
-                            <button
-                                type="submit"
-                                class="btn-primary w-full sm:w-auto"
-                                :disabled="billing || paymentSuccess || !paymentElementReady"
-                                x-text="billing ? 'Processing...' : 'Pay $129 CAD'"></button>
-                        </form>
-                        <p class="text-sm text-[#2b3f54]">Your request is marked paid immediately after a successful charge.</p>
                     </div>
-                </div>
+                </template>
+                <template x-if="request?.status === 'paid'">
+                    <div class="muted-card shadow-md p-6 lg:p-8 space-y-4">
+                        <div class="space-y-2">
+                            <p class="text-sm font-semibold text-[#1f65d1]">Confirmation</p>
+                            <h2 class="text-2xl font-semibold text-[#0f1b2b]">Deposit received</h2>
+                            <p class="text-[#2b3f54]">Your $129 discovery deposit is confirmed. We’ll see you at your scheduled time.</p>
+                        </div>
+                        <div class="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-800">
+                            Payment confirmed. Your discovery deposit is recorded.
+                        </div>
+                    </div>
+                </template>
             </div>
 
             <div class="card-surface shadow-sm p-6 space-y-5 lg:p-7 lg:space-y-6">
@@ -255,7 +269,6 @@
 <script>
     function requestFlow() {
         return {
-            step: 'contact',
             loading: false,
             billing: false,
             error: null,
@@ -301,8 +314,8 @@
                 return options[this.form.audience_type] ?? ['Discovery call'];
             },
             get progressPercent() {
-                if (this.step === 'contact') return 33;
-                if (this.step === 'book') return 66;
+                if (!this.request) return 33;
+                if (this.request?.status === 'started') return 66;
                 return 100;
             },
             csrf() {
@@ -332,7 +345,6 @@
 
                     const data = await response.json();
                     this.request = data.request;
-                    this.step = 'book';
                     this.scheduledCopy = null;
                     this.calendlyErrorMessage = null;
 
@@ -537,6 +549,10 @@
                 const billingRoot = document.querySelector('#billing-root');
                 if (!billingRoot) return;
 
+                if (this.request?.status !== 'scheduled') {
+                    return;
+                }
+
                 this.billingMounted = true;
                 this.paymentError = null;
                 this.paymentLoading = true;
@@ -564,6 +580,12 @@
             },
             async setupPaymentElement() {
                 try {
+                    if (this.request?.status !== 'scheduled') {
+                        this.paymentError = 'Schedule your call first.';
+                        this.paymentLoading = false;
+                        return;
+                    }
+
                     const paymentContainer = document.querySelector('#payment-element');
                     if (!(paymentContainer instanceof HTMLElement)) {
                         this.paymentError = 'Payment form container is missing.';
@@ -637,8 +659,10 @@
                 // Global idempotency guard: never reset after a successful booking.
                 window.__schedulePersisted ??= false;
 
-                this.$watch('step', (value) => {
-                    if (value === 'billing') {
+                this.$watch('request', (value) => {
+                    const status = value?.status;
+
+                    if (status === 'scheduled') {
                         this.paymentError = null;
                         this.paymentSuccess = this.request?.deposit_status === 'paid' || this.request?.status === 'paid';
                         this.$nextTick(() => {
@@ -646,7 +670,7 @@
                         });
                     }
 
-                    if (value === 'book') {
+                    if (status === 'started') {
                         this.calendlyLoading = !this.calendlyInitialized;
                         this.$nextTick(() => {
                             this.initCalendlyWidget();
@@ -666,7 +690,7 @@
                         return;
                     }
 
-                    if (self.step !== 'book') {
+                    if (self.request?.status !== 'started') {
                         return;
                     }
 
@@ -755,7 +779,11 @@
                         window.__schedulePersisted = true;
                         scheduleInFlight = false;
                         self.scheduledCopy = 'Discovery call scheduled.';
-                        self.step = 'billing';
+                        if (responseData.request) {
+                            self.request = responseData.request;
+                        } else if (responseData.next_step === 'billing') {
+                            self.request = { ...(self.request || {}), status: 'scheduled' };
+                        }
 
                         if (!self.isProduction) {
                             console.info('Scheduling persisted successfully', responseData);
