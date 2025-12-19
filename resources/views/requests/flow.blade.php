@@ -364,12 +364,13 @@
                         return;
                     }
 
-                    // 5. Idempotency guard
+                    // 5. Idempotency guard (lock only after backend success)
                     if (window.persistingSchedule) {
                         console.info('Scheduling already persisted; ignoring duplicate message', e.data);
                         return;
                     }
-                    window.persistingSchedule = true;
+
+                    console.info('Accepted Calendly scheduled event', payload);
 
                     // 6. POST ONLY URIs to backend
                     fetch(`/api/requests/${window.requestId}/scheduled`, {
@@ -386,14 +387,18 @@
                         .then(res => res.json())
                         .then(data => {
                             if (data.success) {
+                                window.persistingSchedule = true;
+                                console.info('Scheduling persisted successfully', data);
                                 // advance to Step 3 ONLY after backend confirmation
                                 this.scheduledCopy = 'Discovery call scheduled.';
                                 this.step = 'billing';
                             } else {
+                                console.warn('Scheduling persistence failed', data);
                                 window.persistingSchedule = false;
                             }
                         })
                         .catch(() => {
+                            console.error('Scheduling persistence request failed');
                             window.persistingSchedule = false;
                         });
                 }.bind(this));
