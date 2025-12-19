@@ -139,7 +139,7 @@
                     </div>
                 </template>
 
-                <div class="muted-card shadow-md p-6 lg:p-8 space-y-6" x-show="step === 'billing'" x-cloak>
+                <div id="billing-root" class="muted-card shadow-md p-6 lg:p-8 space-y-6" x-show="step === 'billing'" x-cloak>
                     <div class="space-y-2">
                         <p class="text-sm font-semibold text-[#1f65d1]">Step 3 of 3</p>
                         <h2 class="text-2xl font-semibold text-[#0f1b2b]">Discovery deposit</h2>
@@ -198,6 +198,8 @@
             error: null,
             request: null,
             scheduledCopy: null,
+            scheduleSaving: false,
+            billingMounted: false,
             calendlyBaseUrl: '{{ config('services.calendly.discovery_url') }}',
             audiences: [
                 { value: 'individual', label: 'Individual' },
@@ -273,9 +275,10 @@
                 return `${this.calendlyBaseUrl}?${params.toString()}`;
             },
             async persistSchedule(details) {
-                if (!this.request?.id) return;
+                if (!this.request?.id || this.scheduleSaving) return;
 
                 try {
+                    this.scheduleSaving = true;
                     const response = await fetch('{{ route('requests.schedule') }}', {
                         method: 'POST',
                         headers: {
@@ -289,25 +292,19 @@
                         }),
                     });
 
-                    const text = await response.text();
-                    let data;
-
-                    try {
-                        data = JSON.parse(text);
-                    } catch (e) {
-                        console.error('Expected JSON, received:', text);
-                        throw new Error('Step transition failed.');
-                    }
+                    const data = await response.json();
 
                     if (!response.ok) {
                         throw new Error(data?.message || 'Unable to save schedule.');
                     }
 
-                    this.request = data.request;
+                    this.request = data.request ?? this.request;
                     this.scheduledCopy = details.localCopy;
-                    this.step = 'billing';
+                    this.step = data.next_step ?? 'billing';
                 } catch (e) {
                     this.error = e.message || 'We could not lock the schedule.';
+                } finally {
+                    this.scheduleSaving = false;
                 }
             },
             async submitDeposit() {
@@ -343,17 +340,37 @@
                     this.billing = false;
                 }
             },
-            init() {
-                window.addEventListener('message', (event) => {
-                    if (event.data?.event === 'calendly.event_scheduled') {
-                        const start = event.data?.payload?.event?.start_time;
-                        const eventUri = event.data?.payload?.event?.uri ?? '';
-                        const eventUuid = eventUri.split('/').pop();
-                        const localCopy = start ? `Discovery call set for ${new Date(start).toLocaleString()}` : 'Discovery call scheduled.';
+            initBilling() {
+                if (this.billingMounted) return;
 
-                        if (eventUuid) {
-                            this.persistSchedule({ eventUuid, startTime: start, localCopy });
-                        }
+                const billingRoot = document.querySelector('#billing-root');
+                if (!billingRoot) return;
+
+                this.billingMounted = true;
+            },
+            init() {
+                this.$watch('step', (value) => {
+                    if (value === 'billing') {
+                        this.initBilling();
+                    }
+                });
+
+                window.addEventListener('message', (event) => {
+                    if (event.data?.event !== 'calendly.event_scheduled') {
+                        return;
+                    }
+
+                    if (this.step !== 'schedule') {
+                        return;
+                    }
+
+                    const start = event.data?.payload?.event?.start_time;
+                    const eventUri = event.data?.payload?.event?.uri ?? '';
+                    const eventUuid = eventUri.split('/').pop();
+                    const localCopy = start ? `Discovery call set for ${new Date(start).toLocaleString()}` : 'Discovery call scheduled.';
+
+                    if (eventUuid) {
+                        this.persistSchedule({ eventUuid, startTime: start, localCopy });
                     }
                 });
             },
