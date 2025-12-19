@@ -279,7 +279,7 @@
 
                 try {
                     this.scheduleSaving = true;
-                    const response = await fetch('{{ route('requests.schedule') }}', {
+                    const response = await fetch(`{{ url('/api/requests') }}/${this.request.id}/scheduled`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -287,8 +287,7 @@
                             'X-CSRF-TOKEN': this.csrf(),
                         },
                         body: JSON.stringify({
-                            request_id: this.request.id,
-                            calendly_event_uuid: details.eventUuid,
+                            calendly_event_uri: details.eventUri,
                             scheduled_at: details.startTime,
                         }),
                     });
@@ -373,11 +372,10 @@
 
                     const start = event.data?.payload?.event?.start_time;
                     const eventUri = event.data?.payload?.event?.uri ?? '';
-                    const eventUuid = eventUri.split('/').pop();
                     const localCopy = start ? `Discovery call set for ${new Date(start).toLocaleString()}` : 'Discovery call scheduled.';
 
-                    if (eventUuid) {
-                        this.persistSchedule({ eventUuid, startTime: start, localCopy });
+                    if (eventUri) {
+                        this.persistSchedule({ eventUri, startTime: start, localCopy });
                     }
                 });
             },
