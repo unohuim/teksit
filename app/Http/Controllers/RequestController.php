@@ -21,6 +21,7 @@ class RequestController extends Controller
             'audience_type' => ['required', Rule::in(['individual', 'professional', 'small_team'])],
             'service_category' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
+            'scheduled_at' => ['nullable', 'date'],
         ]);
 
         $serviceRequest = ServiceRequest::create([
@@ -30,6 +31,7 @@ class RequestController extends Controller
             'audience_type' => $validated['audience_type'],
             'service_category' => $validated['service_category'],
             'description' => $validated['description'],
+            'scheduled_at' => $validated['scheduled_at'] ?? null,
             'status' => 'started',
         ]);
 
