@@ -36,7 +36,16 @@
         </template>
 
         <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
-            <div class="lg:col-span-2 space-y-8">
+            <div class="lg:col-span-2 space-y-8 relative">
+                <div
+                    class="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-slate-200/70 backdrop-blur-sm"
+                    x-show="startSupportLoading"
+                    x-cloak>
+                    <div class="flex flex-col items-center gap-3 text-sm font-semibold text-[#0f1b2b]">
+                        <span class="h-10 w-10 rounded-full border-2 border-slate-300 border-t-[#1f65d1] animate-spin"></span>
+                        <span>Preparing your booking…</span>
+                    </div>
+                </div>
                 <div class="muted-card shadow-md p-6 lg:p-8 space-y-6" x-show="step === 'contact'" x-cloak>
                     <div class="space-y-2">
                         <p class="text-sm font-semibold text-[#1f65d1]">Step 1 of 3</p>
@@ -90,10 +99,8 @@
                             <textarea id="description" rows="4" x-model="form.description" class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-3 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]" placeholder="A few sentences about what you need." required></textarea>
                         </div>
 
-                        <p class="text-sm text-[#2b3f54]">No pricing yet. We’ll only use your email to coordinate the call and follow up.</p>
-
                         <div class="pt-2 flex justify-end">
-                            <button type="submit" class="btn-primary w-full sm:w-auto" :disabled="loading">
+                            <button type="submit" class="btn-secondary w-full sm:w-auto" :disabled="loading">
                                 <span x-show="!loading">Start Support</span>
                                 <span x-show="loading">Saving...</span>
                             </button>
@@ -125,10 +132,24 @@
                                             style="min-width:320px;height:700px;">
                                         </div>
                                         <div
-                                            class="absolute inset-0 bg-white/85 backdrop-blur-sm flex items-center justify-center text-sm font-semibold text-[#1f65d1] rounded-2xl border border-[#cfe0c5]"
+                                            class="absolute inset-0 bg-slate-200/70 backdrop-blur-sm flex items-center justify-center text-sm font-semibold text-[#1f65d1] rounded-2xl border border-[#cfe0c5]"
                                             x-show="calendlyLoading"
                                             x-cloak>
-                                            Loading scheduler...
+                                            <div class="flex flex-col items-center gap-3">
+                                                <span class="h-8 w-8 rounded-full border-2 border-slate-300 border-t-[#1f65d1] animate-spin"></span>
+                                                <span>Loading scheduler…</span>
+                                            </div>
+                                        </div>
+                                        <div
+                                            class="absolute inset-0 flex items-center justify-center rounded-2xl border border-[#cfe0c5] bg-[#f3f8ef] text-sm text-[#2b3f54] px-6 text-center"
+                                            x-show="calendlyErrorMessage"
+                                            x-cloak>
+                                            <div class="space-y-4">
+                                                <p x-text="calendlyErrorMessage"></p>
+                                                <button type="button" class="btn-secondary w-full sm:w-auto" @click="retryCalendly">
+                                                    Retry scheduler
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -165,8 +186,17 @@
                             </div>
                             <p class="text-lg font-semibold text-[#0f1b2b]">$129 CAD</p>
                         </div>
-                        <div class="bg-white border border-[#dbe6f6] rounded-xl p-4">
+                        <div class="bg-white border border-[#dbe6f6] rounded-xl p-4 relative">
                             <div id="payment-element" class="min-h-[200px]"></div>
+                            <div
+                                class="absolute inset-0 flex items-center justify-center rounded-xl bg-slate-200/60 text-sm font-semibold text-[#0f1b2b]"
+                                x-show="paymentLoading"
+                                x-cloak>
+                                <div class="flex flex-col items-center gap-3">
+                                    <span class="h-8 w-8 rounded-full border-2 border-slate-300 border-t-[#1f65d1] animate-spin"></span>
+                                    <span>Loading secure payment form…</span>
+                                </div>
+                            </div>
                         </div>
                         <template x-if="paymentError">
                             <div class="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700" x-text="paymentError"></div>
@@ -177,7 +207,11 @@
                             </div>
                         </template>
                         <form class="flex justify-end" @submit.prevent="submitDeposit">
-                            <button type="submit" class="btn-primary w-full sm:w-auto" :disabled="billing || paymentSuccess" x-text="billing ? 'Processing...' : 'Pay $129'"></button>
+                            <button
+                                type="submit"
+                                class="btn-primary w-full sm:w-auto"
+                                :disabled="billing || paymentSuccess || !paymentElementReady"
+                                x-text="billing ? 'Processing...' : 'Pay $129 CAD'"></button>
                         </form>
                         <p class="text-sm text-[#2b3f54]">Your request is marked paid immediately after a successful charge.</p>
                     </div>
@@ -223,8 +257,10 @@
             request: null,
             scheduledCopy: null,
             billingMounted: false,
+            startSupportLoading: false,
             calendlyInitialized: false,
             calendlyLoading: false,
+            calendlyErrorMessage: null,
             calendlyBaseUrl: '{{ config('services.calendly.discovery_url') }}',
             calendlyDebug: @json(config('services.calendly.debug')),
             isProduction: @json(app()->environment('production')),
@@ -235,6 +271,8 @@
             paymentIntentClientSecret: null,
             paymentError: null,
             paymentSuccess: false,
+            paymentLoading: false,
+            paymentElementReady: false,
             audiences: [
                 { value: 'individual', label: 'Individual' },
                 { value: 'professional', label: 'Professional' },
@@ -268,6 +306,7 @@
             async submitStepOne() {
                 this.error = null;
                 this.loading = true;
+                this.startSupportLoading = true;
 
                 try {
                     const response = await fetch('{{ route('requests.store') }}', {
@@ -290,12 +329,14 @@
                     this.request = data.request;
                     this.step = 'book';
                     this.scheduledCopy = null;
+                    this.calendlyErrorMessage = null;
 
                     this.$nextTick(() => {
                         this.initCalendlyWidget();
                     });
                 } catch (e) {
                     this.error = e.message || 'Something went wrong.';
+                    this.startSupportLoading = false;
                 } finally {
                     this.loading = false;
                 }
@@ -318,15 +359,18 @@
 
                 // Guard: only initialize after request + URL + container exist, and only once.
                 if (!this.request?.id || !url || this.calendlyInitialized) {
+                    this.startSupportLoading = false;
                     return;
                 }
 
                 const widget = this.$refs.calendlyWidget;
                 if (!(widget instanceof HTMLElement)) {
+                    this.startSupportLoading = false;
                     return;
                 }
 
                 this.calendlyLoading = true;
+                this.calendlyErrorMessage = null;
                 widget.innerHTML = '';
 
                 const waitForCalendly = () => new Promise((resolve, reject) => {
@@ -337,7 +381,7 @@
                             return;
                         }
 
-                        if (Date.now() - startedAt > 3000) {
+                        if (Date.now() - startedAt > 10000) {
                             reject(new Error('Calendly widget failed to load.'));
                             return;
                         }
@@ -357,13 +401,17 @@
                     this.calendlyInitialized = true;
                     await this.waitForCalendlyIframe(widget);
                     this.calendlyLoading = false;
+                    this.startSupportLoading = false;
                 } catch (error) {
-                    this.error = error.message || 'Calendly failed to load.';
                     this.calendlyLoading = false;
+                    this.startSupportLoading = false;
+                    this.calendlyInitialized = false;
+                    this.calendlyErrorMessage = 'We’re having trouble loading the scheduler right now. Please try again.';
                 }
             },
             waitForCalendlyIframe(container) {
-                return new Promise((resolve) => {
+                return new Promise((resolve, reject) => {
+                    let timeoutId = null;
                     const iframe = container.querySelector('iframe');
                     if (iframe) {
                         requestAnimationFrame(() => resolve());
@@ -374,12 +422,26 @@
                         const iframeNode = container.querySelector('iframe');
                         if (iframeNode) {
                             observer.disconnect();
+                            if (timeoutId) {
+                                clearTimeout(timeoutId);
+                            }
                             requestAnimationFrame(() => resolve());
                         }
                     });
 
                     observer.observe(container, { childList: true, subtree: true });
+
+                    timeoutId = setTimeout(() => {
+                        observer.disconnect();
+                        reject(new Error('Calendly iframe timed out.'));
+                    }, 20000);
                 });
+            },
+            retryCalendly() {
+                this.calendlyInitialized = false;
+                this.calendlyErrorMessage = null;
+                this.calendlyLoading = true;
+                this.initCalendlyWidget();
             },
             async submitDeposit() {
                 if (!this.request?.id) {
@@ -391,8 +453,7 @@
                     return;
                 }
 
-                if (!this.stripe || !this.stripeElements) {
-                    this.paymentError = 'Payment form is still loading.';
+                if (!this.stripe || !this.stripeElements || !this.paymentElementReady) {
                     return;
                 }
 
@@ -466,19 +527,24 @@
 
                 this.billingMounted = true;
                 this.paymentError = null;
+                this.paymentLoading = true;
+                this.paymentElementReady = false;
 
                 if (!this.request?.id) {
                     this.paymentError = 'Start your request first.';
+                    this.paymentLoading = false;
                     return;
                 }
 
                 if (!this.stripePublicKey) {
                     this.paymentError = 'Stripe is not configured.';
+                    this.paymentLoading = false;
                     return;
                 }
 
                 if (typeof Stripe !== 'function') {
                     this.paymentError = 'Stripe.js failed to load.';
+                    this.paymentLoading = false;
                     return;
                 }
 
@@ -517,9 +583,14 @@
                     });
 
                     this.paymentElement = this.stripeElements.create('payment');
+                    this.paymentElement.on('ready', () => {
+                        this.paymentElementReady = true;
+                        this.paymentLoading = false;
+                    });
                     this.paymentElement.mount('#payment-element');
                 } catch (error) {
                     this.paymentError = error.message || 'Unable to start payment.';
+                    this.paymentLoading = false;
                 }
             },
             init() {
@@ -534,6 +605,7 @@
                         this.paymentError = null;
                         this.paymentSuccess = this.request?.deposit_status === 'paid' || this.request?.status === 'paid';
                         this.initBilling();
+                        this.startSupportLoading = false;
                     }
 
                     if (value === 'book') {
