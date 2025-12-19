@@ -289,11 +289,20 @@
                         }),
                     });
 
-                    if (!response.ok) {
-                        throw new Error('Unable to save schedule.');
+                    const text = await response.text();
+                    let data;
+
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        console.error('Expected JSON, received:', text);
+                        throw new Error('Step transition failed.');
                     }
 
-                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data?.message || 'Unable to save schedule.');
+                    }
+
                     this.request = data.request;
                     this.scheduledCopy = details.localCopy;
                     this.step = 'billing';

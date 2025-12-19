@@ -8,7 +8,6 @@ Route::view('/', 'welcome');
 Route::view('/pricing', 'pricing');
 Route::view('/contact', 'requests.flow')->name('contact');
 Route::post('/requests/start', [RequestController::class, 'start'])->name('requests.start');
-Route::post('/requests/schedule', [RequestController::class, 'storeSchedule'])->name('requests.schedule');
 Route::post('/requests/{request}/deposit', [RequestController::class, 'recordDeposit'])->name('requests.deposit');
 Route::get('/request/confirmed', [RequestController::class, 'confirmed'])->name('requests.confirmed');
 
