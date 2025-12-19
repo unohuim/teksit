@@ -57,6 +57,7 @@ class RequestController extends Controller
 
         return response()->json([
             'success' => true,
+            'status' => $serviceRequest->status,
             'request_id' => $serviceRequest->id,
             'next_step' => 'billing',
             'request' => $serviceRequest,
