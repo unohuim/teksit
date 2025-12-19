@@ -283,6 +283,7 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
+                            'Accept': 'application/json',
                             'X-CSRF-TOKEN': this.csrf(),
                         },
                         body: JSON.stringify({
@@ -292,12 +293,18 @@
                         }),
                     });
 
-                    const data = await response.json();
-
                     if (!response.ok) {
-                        throw new Error(data?.message || 'Unable to save schedule.');
+                        let message = 'Unable to save schedule.';
+                        try {
+                            const errorData = await response.json();
+                            message = errorData?.message || message;
+                        } catch (error) {
+                            message = message;
+                        }
+                        throw new Error(message);
                     }
 
+                    const data = await response.json();
                     this.request = data.request ?? this.request;
                     this.scheduledCopy = details.localCopy;
                     this.step = data.next_step ?? 'billing';

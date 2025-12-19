@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\RequestController;
+use App\Http\Controllers\Api\RequestScheduleController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/requests/schedule', [RequestController::class, 'storeSchedule'])->name('requests.schedule');
+Route::post('/requests/schedule', [RequestScheduleController::class, 'store'])->name('requests.schedule');
