@@ -289,8 +289,6 @@
             calendlyRetryAvailable: false,
             calendlyLoadStartedAt: null,
             calendlyLoadTimer: null,
-            calendlyOverlayTimer: null,
-            calendlyRetryTimer: null,
             calendlyBaseUrl: '{{ config('services.calendly.discovery_url') }}',
             calendlyDebug: @json(config('services.calendly.debug')),
             calendlyOrigins: ['https://calendly.com'],
@@ -358,17 +356,8 @@
             },
             showOverlay() {
                 this.overlayActive = true;
-                if (this.calendlyOverlayTimer) {
-                    clearTimeout(this.calendlyOverlayTimer);
-                }
-                this.calendlyOverlayTimer = setTimeout(() => {
-                    this.overlayActive = false;
-                }, 5000);
             },
             clearOverlay() {
-                if (this.calendlyOverlayTimer) {
-                    clearTimeout(this.calendlyOverlayTimer);
-                }
                 this.overlayActive = false;
             },
             async submitStepOne() {
@@ -449,18 +438,6 @@
                 this.showOverlay();
                 widget.innerHTML = '';
 
-                if (this.calendlyRetryTimer) {
-                    clearTimeout(this.calendlyRetryTimer);
-                }
-                this.calendlyRetryTimer = setTimeout(() => {
-                    if (this.currentStep === 'schedule' && !this.hasCalendlyIframe()) {
-                        this.calendlyRetryAvailable = true;
-                        if (!this.calendlyErrorMessage) {
-                            this.calendlyErrorMessage = 'Scheduler is taking longer than expected. Please retry.';
-                        }
-                    }
-                }, 5000);
-
                 this.attemptCalendlyLoad();
             },
             hasCalendlyIframe() {
@@ -483,7 +460,7 @@
                     return;
                 }
 
-                const deadline = (this.calendlyLoadStartedAt ?? Date.now()) + 5000;
+                const deadline = (this.calendlyLoadStartedAt ?? Date.now()) + 10000;
 
                 if (!window.Calendly || typeof window.Calendly.initInlineWidget !== 'function') {
                     if (Date.now() < deadline) {
@@ -545,9 +522,6 @@
             resetCalendlyState() {
                 if (this.calendlyLoadTimer) {
                     clearTimeout(this.calendlyLoadTimer);
-                }
-                if (this.calendlyRetryTimer) {
-                    clearTimeout(this.calendlyRetryTimer);
                 }
                 this.calendlyLoading = false;
                 this.calendlyErrorMessage = null;
