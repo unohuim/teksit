@@ -37,7 +37,7 @@
 
         <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
             <div class="lg:col-span-2 space-y-8 relative">
-                <template x-if="!request || (request.status === 'started' && !request.has_calendly)">
+                <template x-if="!request">
                     <div class="muted-card shadow-md p-6 lg:p-8 space-y-6">
                         <div class="space-y-2">
                             <p class="text-sm font-semibold text-[#1f65d1]">Step 1 of 3</p>
@@ -101,7 +101,7 @@
                     </div>
                 </template>
 
-                <template x-if="request && request.status === 'started' && request.has_calendly">
+                <template x-if="request && request.status === 'started'">
                     <div class="relative" x-init="initCalendlyWidget()">
                         <div
                             class="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-slate-200/70 backdrop-blur-sm"
@@ -321,9 +321,8 @@
                 return 100;
             },
             get showOverlay() {
-                return Boolean(this.request)
-                    && this.request?.status === 'started'
-                    && this.awaitingSchedulePersistence === true;
+                return this.loading === true
+                    && this.request?.status === 'started';
             },
             csrf() {
                 return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -352,7 +351,6 @@
                     const data = await response.json();
                     this.request = {
                         ...data.request,
-                        has_calendly: true,
                     };
                     this.scheduledCopy = null;
                     this.calendlyErrorMessage = null;
