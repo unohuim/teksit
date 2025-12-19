@@ -198,7 +198,6 @@
             error: null,
             request: null,
             scheduledCopy: null,
-            persistingSchedule: false,
             billingMounted: false,
             calendlyBaseUrl: '{{ config('services.calendly.discovery_url') }}',
             calendlyDebug: @json(config('services.calendly.debug')),
@@ -254,6 +253,7 @@
 
                     const data = await response.json();
                     this.request = data.request;
+                    window.requestId = data.request?.id;
                     this.step = 'schedule';
                     this.scheduledCopy = null;
                 } catch (e) {
@@ -274,49 +274,6 @@
                 });
 
                 return `${this.calendlyBaseUrl}?${params.toString()}`;
-            },
-            async persistSchedule(details) {
-                if (!this.request?.id || this.persistingSchedule) return;
-
-                try {
-                    this.persistingSchedule = true;
-                    const response = await fetch(`{{ url('/api/requests') }}/${this.request.id}/scheduled`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                            'X-CSRF-TOKEN': this.csrf(),
-                        },
-                        body: JSON.stringify({
-                            calendly_event_uri: details.eventUri,
-                            scheduled_at: details.startTime,
-                        }),
-                    });
-
-                    if (!response.ok) {
-                        let message = 'Unable to save schedule.';
-                        try {
-                            const errorData = await response.json();
-                            message = errorData?.message || message;
-                        } catch (error) {
-                            message = message;
-                        }
-                        throw new Error(message);
-                    }
-
-                    const data = await response.json();
-                    if (!data?.success) {
-                        throw new Error('Schedule not saved.');
-                    }
-                    this.request = data.request ?? this.request;
-                    this.scheduledCopy = details.localCopy;
-                    this.step = data.next_step ?? 'billing';
-                } catch (e) {
-                    console.error(e);
-                    this.error = 'We couldn’t save your booking yet. Please refresh and try again.';
-                } finally {
-                    this.persistingSchedule = false;
-                }
             },
             async submitDeposit() {
                 if (!this.request?.id) {
@@ -360,6 +317,9 @@
                 this.billingMounted = true;
             },
             init() {
+                window.requestId ??= null;
+                window.persistingSchedule ??= false;
+
                 this.$watch('step', (value) => {
                     if (value === 'billing') {
                         this.initBilling();
@@ -367,29 +327,39 @@
                 });
 
                 window.addEventListener('message', (event) => {
-                    if (event.data?.event !== 'calendly.event_scheduled') {
-                        return;
+                    if (
+                        event.data &&
+                        event.data.event === 'calendly.event_scheduled' &&
+                        event.data.payload?.event?.uri &&
+                        event.data.payload?.invitee?.uri
+                    ) {
+                        if (window.persistingSchedule) return;
+                        window.persistingSchedule = true;
+
+                        fetch(`/api/requests/${window.requestId}/scheduled`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                calendly_event_uri: event.data.payload.event.uri,
+                                calendly_invitee_uri: event.data.payload.invitee.uri,
+                            }),
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                this.scheduledCopy = 'Discovery call scheduled.';
+                                this.step = 'billing';
+                            } else {
+                                window.persistingSchedule = false;
+                            }
+                        })
+                        .catch(() => {
+                            window.persistingSchedule = false;
+                        });
                     }
-
-                    if (this.step !== 'schedule') {
-                        return;
-                    }
-
-                    if (this.calendlyDebug) {
-                        console.log('Calendly event payload:', event.data);
-                    }
-
-                    const start = event.data?.payload?.event?.start_time;
-                    const eventUri = event.data?.payload?.event?.uri;
-
-                    if (!start || !eventUri) {
-                        console.error('Calendly scheduling payload missing required fields.', event.data);
-                        return;
-                    }
-
-                    const localCopy = start ? `Discovery call set for ${new Date(start).toLocaleString()}` : 'Discovery call scheduled.';
-
-                    this.persistSchedule({ eventUri, startTime: start, localCopy });
                 });
             },
         };

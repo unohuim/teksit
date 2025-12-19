@@ -3,7 +3,6 @@
 ## Step 1 — Started
 - Trigger: request creation
 - Status: `started`
-- Validation: `scheduled_at` must be **nullable** at this step
 - Purpose: capture initial request details only
 
 ## Step 2 — Scheduled (Calendly)
@@ -11,9 +10,9 @@
 - Endpoint: `POST /api/requests/{request}/scheduled`
 - Required payload:
   - `calendly_event_uri`
-  - `scheduled_at`
+  - `calendly_invitee_uri`
 - Status transition: `started` → `scheduled`
-- Validation timing rule: **only validate `scheduled_at` here**
+- Backend responsibility: fetch Calendly event details via `calendly_event_uri` and persist `scheduled_at`
 
 ## Step 3 — Paid (Billing)
 - Trigger: billing confirmation (Stripe or equivalent)
@@ -21,5 +20,5 @@
 
 ## Validation Timing Rules
 - Do **not** require Calendly fields before the Calendly callback.
-- `scheduled_at` is optional at Step 1 and required at Step 2 only.
+- Never validate `scheduled_at` from frontend input.
 - Step transitions are state changes, not navigation.

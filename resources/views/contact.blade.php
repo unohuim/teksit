@@ -327,8 +327,7 @@
             initListeners() {
                 window.addEventListener('message', (event) => {
                     if (event.data?.event === 'calendly.event_scheduled') {
-                        const when = event.data?.payload?.event?.start_time;
-                        this.confirmation = when ? `Scheduled for ${new Date(when).toLocaleString()}` : 'We received your booking.';
+                        this.confirmation = 'We received your booking.';
                     }
                 });
             },

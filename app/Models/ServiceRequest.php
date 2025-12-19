@@ -20,6 +20,7 @@ class ServiceRequest extends Model
         'service_category',
         'description',
         'calendly_event_uri',
+        'calendly_invitee_uri',
         'calendly_event_uuid',
         'scheduled_at',
     ];
