@@ -220,7 +220,7 @@
                                 <button
                                     type="submit"
                                     class="btn-primary w-full sm:w-auto"
-                                    :disabled="billing || paymentSuccess || !paymentElementReady"
+                                    :disabled="billing || paymentSuccess"
                                     x-text="billing ? 'Processing...' : 'Pay $129 CAD'"></button>
                             </form>
                             <p class="text-sm text-[#2b3f54]">Your request is marked paid immediately after a successful charge.</p>
@@ -298,7 +298,6 @@
             paymentError: null,
             paymentSuccess: false,
             paymentLoading: false,
-            paymentElementReady: false,
             audiences: [
                 { value: 'individual', label: 'Individual' },
                 { value: 'professional', label: 'Professional' },
@@ -329,7 +328,7 @@
                 return 'start';
             },
             get isScheduled() {
-                return ['scheduled', 'paid'].includes(this.request?.status);
+                return this.request?.status === 'scheduled';
             },
             get canRetryCalendly() {
                 return this.calendlyTimeoutReached && !this.hasCalendlyIframe();
@@ -547,7 +546,7 @@
                     return;
                 }
 
-                if (!this.stripe || !this.stripeElements || !this.paymentElementReady) {
+                if (!this.stripe || !this.stripeElements) {
                     return;
                 }
 
@@ -619,7 +618,7 @@
                 const billingRoot = document.querySelector('#billing-root');
                 if (!billingRoot) return;
 
-                if (!this.isScheduled) {
+                if (this.request?.status !== 'scheduled') {
                     return;
                 }
 
@@ -627,7 +626,6 @@
                 this.paymentError = null;
                 this.paymentLoading = true;
                 this.paymentSuccess = this.request?.deposit_status === 'paid' || this.request?.status === 'paid';
-                this.paymentElementReady = false;
 
                 if (!this.request?.id) {
                     this.paymentError = 'Start your request first.';
@@ -695,12 +693,12 @@
                     const readyPromise = new Promise((resolve, reject) => {
                         let timeoutId = null;
 
-                        this.paymentElement.on('ready', () => {
-                            if (timeoutId) {
-                                clearTimeout(timeoutId);
-                            }
-                            resolve();
-                        });
+                    this.paymentElement.on('ready', () => {
+                        if (timeoutId) {
+                            clearTimeout(timeoutId);
+                        }
+                        resolve();
+                    });
 
                         timeoutId = setTimeout(() => {
                             reject(new Error('Stripe Payment Element did not report ready state.'));
@@ -711,7 +709,6 @@
 
                     // Stripe mount verification relies on the ready event before enabling payment.
                     await readyPromise;
-                    this.paymentElementReady = true;
                     this.paymentLoading = false;
                 } catch (error) {
                     this.paymentError = error.message || 'Unable to start payment.';
