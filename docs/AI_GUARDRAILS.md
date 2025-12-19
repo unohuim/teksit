@@ -1,8 +1,11 @@
 # AI Guardrails
 
 ## Calendly Scheduling
-- Never require Calendly data before the Calendly embed fires `calendly.event_scheduled`.
+- Only react to `calendly.event_scheduled`.
+- Read `payload.event.start_time` and `payload.event.uri` only.
+- Never require Calendly data before the embed fires `calendly.event_scheduled`.
 - Never validate `scheduled_at` outside the Step 2 scheduling endpoint.
+- Never advance to the next step until the backend confirms success.
 
 ## JSON-Only Responses
 - Never return HTML to JavaScript-driven endpoints.

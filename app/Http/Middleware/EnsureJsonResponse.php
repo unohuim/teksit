@@ -4,25 +4,42 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
-use Symfony\Component\HttpFoundation\Response;
 
 class EnsureJsonResponse
 {
     /**
-     * @param  Closure(Request): Response  $next
+     * Handle an incoming request.
+     *
+     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next)
     {
         $response = $next($request);
 
-        if ($request->expectsJson()) {
-            $contentType = $response->headers->get('content-type', '');
-
-            if (str_contains($contentType, 'text/html')) {
-                throw new RuntimeException('HTML leaked into JSON response');
-            }
+        if (! $request->expectsJson()) {
+            return $response;
         }
+
+        $contentType = $response->headers->get('Content-Type', '');
+        $isJson = str_contains($contentType, 'application/json');
+        $isHtml = str_contains($contentType, 'text/html') || str_contains($contentType, 'text/plain');
+
+        if ($isJson || ! $isHtml) {
+            return $response;
+        }
+
+        $message = 'Expected JSON response but received HTML for an API request.';
+
+        if (app()->environment(['local', 'testing'])) {
+            throw new RuntimeException($message);
+        }
+
+        Log::warning($message, [
+            'path' => $request->path(),
+            'status' => $response->getStatusCode(),
+        ]);
 
         return $response;
     }

@@ -198,9 +198,10 @@
             error: null,
             request: null,
             scheduledCopy: null,
-            scheduleSaving: false,
+            persistingSchedule: false,
             billingMounted: false,
             calendlyBaseUrl: '{{ config('services.calendly.discovery_url') }}',
+            calendlyDebug: @json(config('services.calendly.debug')),
             audiences: [
                 { value: 'individual', label: 'Individual' },
                 { value: 'professional', label: 'Professional' },
@@ -275,10 +276,10 @@
                 return `${this.calendlyBaseUrl}?${params.toString()}`;
             },
             async persistSchedule(details) {
-                if (!this.request?.id || this.scheduleSaving) return;
+                if (!this.request?.id || this.persistingSchedule) return;
 
                 try {
-                    this.scheduleSaving = true;
+                    this.persistingSchedule = true;
                     const response = await fetch(`{{ url('/api/requests') }}/${this.request.id}/scheduled`, {
                         method: 'POST',
                         headers: {
@@ -304,13 +305,17 @@
                     }
 
                     const data = await response.json();
+                    if (!data?.success) {
+                        throw new Error('Schedule not saved.');
+                    }
                     this.request = data.request ?? this.request;
                     this.scheduledCopy = details.localCopy;
                     this.step = data.next_step ?? 'billing';
                 } catch (e) {
-                    this.error = e.message || 'We could not lock the schedule.';
+                    console.error(e);
+                    this.error = 'We couldn’t save your booking yet. Please refresh and try again.';
                 } finally {
-                    this.scheduleSaving = false;
+                    this.persistingSchedule = false;
                 }
             },
             async submitDeposit() {
@@ -370,13 +375,21 @@
                         return;
                     }
 
+                    if (this.calendlyDebug) {
+                        console.log('Calendly event payload:', event.data);
+                    }
+
                     const start = event.data?.payload?.event?.start_time;
-                    const eventUri = event.data?.payload?.event?.uri ?? '';
+                    const eventUri = event.data?.payload?.event?.uri;
+
+                    if (!start || !eventUri) {
+                        console.error('Calendly scheduling payload missing required fields.', event.data);
+                        return;
+                    }
+
                     const localCopy = start ? `Discovery call set for ${new Date(start).toLocaleString()}` : 'Discovery call scheduled.';
 
-                    if (eventUri) {
-                        this.persistSchedule({ eventUri, startTime: start, localCopy });
-                    }
+                    this.persistSchedule({ eventUri, startTime: start, localCopy });
                 });
             },
         };
