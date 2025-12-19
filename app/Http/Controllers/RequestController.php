@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ServiceRequest;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -35,7 +36,7 @@ class RequestController extends Controller
         return response(['request' => $serviceRequest], Response::HTTP_CREATED);
     }
 
-    public function storeSchedule(Request $request): Response
+    public function storeSchedule(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'request_id' => ['required', 'integer', 'exists:requests,id'],
@@ -46,7 +47,7 @@ class RequestController extends Controller
         $serviceRequest = ServiceRequest::findOrFail($validated['request_id']);
 
         if (! in_array($serviceRequest->status, ['started', 'scheduled'])) {
-            return response(['message' => 'Request already processed.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return response()->json(['message' => 'Request already processed.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $serviceRequest->calendly_event_uuid = $validated['calendly_event_uuid'];
@@ -54,7 +55,10 @@ class RequestController extends Controller
         $serviceRequest->status = 'scheduled';
         $serviceRequest->save();
 
-        return response([
+        return response()->json([
+            'success' => true,
+            'request_id' => $serviceRequest->id,
+            'next_step' => 'billing',
             'request' => $serviceRequest,
             'message' => 'Discovery call scheduled.',
         ]);
