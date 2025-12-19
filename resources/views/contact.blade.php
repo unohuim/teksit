@@ -243,6 +243,7 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
+                            'Accept': 'application/json',
                             'X-CSRF-TOKEN': this.csrf(),
                         },
                         body: JSON.stringify({
@@ -256,6 +257,7 @@
 
                     const data = await response.json();
                     this.request = data.request;
+                    window.requestId = data.request?.id;
                     this.step = 'book';
                     this.confirmation = null;
                 } catch (e) {
@@ -325,11 +327,66 @@
                 });
             },
             initListeners() {
-                window.addEventListener('message', (event) => {
-                    if (event.data?.event === 'calendly.event_scheduled') {
-                        this.confirmation = 'We received your booking.';
+                window.requestId ??= null;
+                window.persistingSchedule ??= false;
+
+                window.addEventListener('message', function (e) {
+                    // 1. HARD origin filter (ignore GTM / GA / analytics noise)
+                    if (e.origin !== 'https://calendly.com') {
+                        return;
                     }
-                });
+
+                    // 2. HARD event name filter
+                    if (!e.data || e.data.event !== 'calendly.event_scheduled') {
+                        return;
+                    }
+
+                    // 3. HARD payload shape validation
+                    const payload = e.data.payload;
+
+                    if (
+                        !payload ||
+                        !payload.event ||
+                        !payload.event.uri ||
+                        !payload.invitee ||
+                        !payload.invitee.uri
+                    ) {
+                        console.error(
+                            'Calendly embed payload missing required fields',
+                            e.data
+                        );
+                        return;
+                    }
+
+                    // 4. Idempotency guard
+                    if (window.persistingSchedule) return;
+                    window.persistingSchedule = true;
+
+                    // 5. POST ONLY URIs to backend
+                    fetch(`/api/requests/${window.requestId}/scheduled`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            calendly_event_uri: payload.event.uri,
+                            calendly_invitee_uri: payload.invitee.uri,
+                        }),
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                // advance to Step 3 ONLY after backend confirmation
+                                this.confirmation = 'We received your booking.';
+                            } else {
+                                window.persistingSchedule = false;
+                            }
+                        })
+                        .catch(() => {
+                            window.persistingSchedule = false;
+                        });
+                }.bind(this));
             },
         };
     }

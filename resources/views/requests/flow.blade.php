@@ -236,10 +236,11 @@
                 this.loading = true;
 
                 try {
-                    const response = await fetch('{{ route('requests.start') }}', {
+                    const response = await fetch('{{ route('requests.store') }}', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
+                            'Accept': 'application/json',
                             'X-CSRF-TOKEN': this.csrf(),
                         },
                         body: JSON.stringify({
@@ -285,10 +286,11 @@
                 this.error = null;
 
                 try {
-                    const response = await fetch(`{{ url('/requests') }}/${this.request.id}/deposit`, {
+                    const response = await fetch(`/api/requests/${this.request.id}/deposit`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
+                            'Accept': 'application/json',
                             'X-CSRF-TOKEN': this.csrf(),
                         },
                         body: JSON.stringify({ payment_method: 'card' }),
@@ -326,30 +328,54 @@
                     }
                 });
 
-                window.addEventListener('message', (event) => {
-                    if (
-                        event.data &&
-                        event.data.event === 'calendly.event_scheduled' &&
-                        event.data.payload?.event?.uri &&
-                        event.data.payload?.invitee?.uri
-                    ) {
-                        if (window.persistingSchedule) return;
-                        window.persistingSchedule = true;
+                window.addEventListener('message', function (e) {
+                    // 1. HARD origin filter (ignore GTM / GA / analytics noise)
+                    if (e.origin !== 'https://calendly.com') {
+                        return;
+                    }
 
-                        fetch(`/api/requests/${window.requestId}/scheduled`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                calendly_event_uri: event.data.payload.event.uri,
-                                calendly_invitee_uri: event.data.payload.invitee.uri,
-                            }),
-                        })
+                    // 2. HARD event name filter
+                    if (!e.data || e.data.event !== 'calendly.event_scheduled') {
+                        return;
+                    }
+
+                    // 3. HARD payload shape validation
+                    const payload = e.data.payload;
+
+                    if (
+                        !payload ||
+                        !payload.event ||
+                        !payload.event.uri ||
+                        !payload.invitee ||
+                        !payload.invitee.uri
+                    ) {
+                        console.error(
+                            'Calendly embed payload missing required fields',
+                            e.data
+                        );
+                        return;
+                    }
+
+                    // 4. Idempotency guard
+                    if (window.persistingSchedule) return;
+                    window.persistingSchedule = true;
+
+                    // 5. POST ONLY URIs to backend
+                    fetch(`/api/requests/${window.requestId}/scheduled`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            calendly_event_uri: payload.event.uri,
+                            calendly_invitee_uri: payload.invitee.uri,
+                        }),
+                    })
                         .then(res => res.json())
                         .then(data => {
                             if (data.success) {
+                                // advance to Step 3 ONLY after backend confirmation
                                 this.scheduledCopy = 'Discovery call scheduled.';
                                 this.step = 'billing';
                             } else {
@@ -359,8 +385,7 @@
                         .catch(() => {
                             window.persistingSchedule = false;
                         });
-                    }
-                });
+                }.bind(this));
             },
         };
     }
