@@ -37,70 +37,72 @@
 
         <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
             <div class="lg:col-span-2 space-y-8 relative">
-                <div class="muted-card shadow-md p-6 lg:p-8 space-y-6" x-show="!request || request.status === 'started'" x-cloak>
-                    <div class="space-y-2">
-                        <p class="text-sm font-semibold text-[#1f65d1]">Step 1 of 3</p>
-                        <h2 class="text-2xl font-semibold text-[#0f1b2b]">Start your request</h2>
-                        <p class="text-[#2b3f54]">We’ll create your request immediately so we can prefill Calendly and keep everything on happytek.ca.</p>
+                <template x-if="!request || (request.status === 'started' && !request.has_calendly)">
+                    <div class="muted-card shadow-md p-6 lg:p-8 space-y-6">
+                        <div class="space-y-2">
+                            <p class="text-sm font-semibold text-[#1f65d1]">Step 1 of 3</p>
+                            <h2 class="text-2xl font-semibold text-[#0f1b2b]">Start your request</h2>
+                            <p class="text-[#2b3f54]">We’ll create your request immediately so we can prefill Calendly and keep everything on happytek.ca.</p>
+                        </div>
+                        <form class="space-y-5" @submit.prevent="submitStepOne">
+                            <div class="grid sm:grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <label for="name" class="block text-sm font-medium text-[#0f1b2b]">Name</label>
+                                    <input id="name" type="text" x-model="form.name" class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-2 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]" required />
+                                </div>
+                                <div class="space-y-2">
+                                    <label for="email" class="block text-sm font-medium text-[#0f1b2b]">Email</label>
+                                    <input id="email" type="email" x-model="form.email" class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-2 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]" required />
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label for="phone" class="block text-sm font-medium text-[#0f1b2b]">Phone (optional)</label>
+                                <input id="phone" type="text" x-model="form.phone" class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-2 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]" placeholder="If you’d prefer a call back" />
+                            </div>
+
+                            <div class="space-y-3">
+                                <p class="block text-sm font-medium text-[#0f1b2b]">Audience</p>
+                                <div class="inline-flex rounded-xl bg-white border border-[#cfe0c5] p-1 shadow-sm w-full sm:w-auto">
+                                    <template x-for="audience in audiences" :key="audience.value">
+                                        <button type="button"
+                                            class="px-4 py-2 text-sm font-semibold rounded-lg focus:outline-none"
+                                            :class="form.audience_type === audience.value ? 'bg-[#1f65d1] text-white shadow-sm' : 'text-[#0f1b2b]'"
+                                            @click="form.audience_type = audience.value">
+                                            <span x-text="audience.label"></span>
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label for="service_category" class="block text-sm font-medium text-[#0f1b2b]">Service category</label>
+                                <select id="service_category" x-model="form.service_category" class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-2 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]" required>
+                                    <option value="" disabled>Select a category</option>
+                                    <template x-for="option in serviceOptions" :key="option">
+                                        <option x-text="option"></option>
+                                    </template>
+                                </select>
+                                <p class="text-xs text-[#2b3f54]">Pick the closest fit — we’ll refine during the call.</p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label for="description" class="block text-sm font-medium text-[#0f1b2b]">Description</label>
+                                <textarea id="description" rows="4" x-model="form.description" class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-3 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]" placeholder="A few sentences about what you need." required></textarea>
+                            </div>
+
+                            <div class="pt-2 flex justify-end">
+                                <button type="submit" class="btn-secondary w-full sm:w-auto" :disabled="loading">
+                                    <span x-show="!loading">Start Support</span>
+                                    <span x-show="loading">Saving...</span>
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                    <form class="space-y-5" @submit.prevent="submitStepOne">
-                        <div class="grid sm:grid-cols-2 gap-4">
-                            <div class="space-y-2">
-                                <label for="name" class="block text-sm font-medium text-[#0f1b2b]">Name</label>
-                                <input id="name" type="text" x-model="form.name" class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-2 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]" required />
-                            </div>
-                            <div class="space-y-2">
-                                <label for="email" class="block text-sm font-medium text-[#0f1b2b]">Email</label>
-                                <input id="email" type="email" x-model="form.email" class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-2 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]" required />
-                            </div>
-                        </div>
+                </template>
 
-                        <div class="space-y-2">
-                            <label for="phone" class="block text-sm font-medium text-[#0f1b2b]">Phone (optional)</label>
-                            <input id="phone" type="text" x-model="form.phone" class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-2 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]" placeholder="If you’d prefer a call back" />
-                        </div>
-
-                        <div class="space-y-3">
-                            <p class="block text-sm font-medium text-[#0f1b2b]">Audience</p>
-                            <div class="inline-flex rounded-xl bg-white border border-[#cfe0c5] p-1 shadow-sm w-full sm:w-auto">
-                                <template x-for="audience in audiences" :key="audience.value">
-                                    <button type="button"
-                                        class="px-4 py-2 text-sm font-semibold rounded-lg focus:outline-none"
-                                        :class="form.audience_type === audience.value ? 'bg-[#1f65d1] text-white shadow-sm' : 'text-[#0f1b2b]'"
-                                        @click="form.audience_type = audience.value">
-                                        <span x-text="audience.label"></span>
-                                    </button>
-                                </template>
-                            </div>
-                        </div>
-
-                        <div class="space-y-2">
-                            <label for="service_category" class="block text-sm font-medium text-[#0f1b2b]">Service category</label>
-                            <select id="service_category" x-model="form.service_category" class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-2 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]" required>
-                                <option value="" disabled>Select a category</option>
-                                <template x-for="option in serviceOptions" :key="option">
-                                    <option x-text="option"></option>
-                                </template>
-                            </select>
-                            <p class="text-xs text-[#2b3f54]">Pick the closest fit — we’ll refine during the call.</p>
-                        </div>
-
-                        <div class="space-y-2">
-                            <label for="description" class="block text-sm font-medium text-[#0f1b2b]">Description</label>
-                            <textarea id="description" rows="4" x-model="form.description" class="w-full rounded-lg border border-[#cfe0c5] bg-white px-4 py-3 text-[#0f1b2b] focus:border-[#1f65d1] focus:ring-[#1f65d1]" placeholder="A few sentences about what you need." required></textarea>
-                        </div>
-
-                        <div class="pt-2 flex justify-end">
-                            <button type="submit" class="btn-secondary w-full sm:w-auto" :disabled="loading">
-                                <span x-show="!loading">Start Support</span>
-                                <span x-show="loading">Saving...</span>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <template x-if="request && request.status === 'started'">
-                    <div class="relative">
+                <template x-if="request && request.status === 'started' && request.has_calendly">
+                    <div class="relative" x-init="initCalendlyWidget()">
                         <div
                             class="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-slate-200/70 backdrop-blur-sm"
                             x-show="isAdvancingStep"
@@ -169,7 +171,7 @@
                     </div>
                 </template>
 
-                <template x-if="request?.status === 'scheduled'">
+                <template x-if="request && request.status === 'scheduled'">
                     <div id="billing-root" class="muted-card shadow-md p-6 lg:p-8 space-y-6" x-init="initBilling()">
                         <div class="space-y-2">
                             <p class="text-sm font-semibold text-[#1f65d1]">Step 3 of 3</p>
@@ -223,7 +225,7 @@
                         </div>
                     </div>
                 </template>
-                <template x-if="request?.status === 'paid'">
+                <template x-if="request && request.status === 'paid'">
                     <div class="muted-card shadow-md p-6 lg:p-8 space-y-4">
                         <div class="space-y-2">
                             <p class="text-sm font-semibold text-[#1f65d1]">Confirmation</p>
@@ -344,7 +346,10 @@
                     }
 
                     const data = await response.json();
-                    this.request = data.request;
+                    this.request = {
+                        ...data.request,
+                        has_calendly: true,
+                    };
                     this.scheduledCopy = null;
                     this.calendlyErrorMessage = null;
 
@@ -556,6 +561,7 @@
                 this.billingMounted = true;
                 this.paymentError = null;
                 this.paymentLoading = true;
+                this.paymentSuccess = this.request?.deposit_status === 'paid' || this.request?.status === 'paid';
                 this.paymentElementReady = false;
 
                 if (!this.request?.id) {
@@ -658,27 +664,6 @@
 
                 // Global idempotency guard: never reset after a successful booking.
                 window.__schedulePersisted ??= false;
-
-                this.$watch('request', (value) => {
-                    const status = value?.status;
-
-                    if (status === 'scheduled') {
-                        this.paymentError = null;
-                        this.paymentSuccess = this.request?.deposit_status === 'paid' || this.request?.status === 'paid';
-                        this.$nextTick(() => {
-                            this.initBilling();
-                        });
-                    }
-
-                    if (status === 'started') {
-                        this.calendlyLoading = !this.calendlyInitialized;
-                        this.$nextTick(() => {
-                            this.initCalendlyWidget();
-                        });
-                    } else {
-                        this.calendlyLoading = false;
-                    }
-                });
 
                 window.addEventListener('message', async (e) => {
                     // Only accept authoritative Calendly scheduled events.
