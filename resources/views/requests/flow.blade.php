@@ -37,15 +37,6 @@
 
         <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
             <div class="lg:col-span-2 space-y-8 relative">
-                <div
-                    class="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-slate-200/70 backdrop-blur-sm"
-                    x-show="startSupportLoading"
-                    x-cloak>
-                    <div class="flex flex-col items-center gap-3 text-sm font-semibold text-[#0f1b2b]">
-                        <span class="h-10 w-10 rounded-full border-2 border-slate-300 border-t-[#1f65d1] animate-spin"></span>
-                        <span>Preparing your booking…</span>
-                    </div>
-                </div>
                 <div class="muted-card shadow-md p-6 lg:p-8 space-y-6" x-show="step === 'contact'" x-cloak>
                     <div class="space-y-2">
                         <p class="text-sm font-semibold text-[#1f65d1]">Step 1 of 3</p>
@@ -109,7 +100,20 @@
                 </div>
 
                 <template x-if="step === 'book'">
-                    <div class="muted-card shadow-md p-6 lg:p-8 space-y-6">
+                    <div class="relative">
+                        <div
+                            class="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-slate-200/70 backdrop-blur-sm"
+                            x-show="isAdvancingStep"
+                            x-cloak>
+                            <div class="flex flex-col items-center gap-3 text-sm font-semibold text-[#0f1b2b] text-center px-6">
+                                <span class="h-10 w-10 rounded-full border-2 border-slate-300 border-t-[#1f65d1] animate-spin"></span>
+                                <span>Preparing the next step — please stay here</span>
+                                <template x-if="calendlyErrorMessage">
+                                    <span class="text-xs text-[#4b5563]" x-text="calendlyErrorMessage"></span>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="muted-card shadow-md p-6 lg:p-8 space-y-6 relative">
                         <div class="space-y-2">
                             <p class="text-sm font-semibold text-[#1f65d1]">Step 2 of 3</p>
                             <h2 class="text-2xl font-semibold text-[#0f1b2b]">Schedule discovery call</h2>
@@ -161,6 +165,7 @@
                                 <p class="text-green-800" x-text="scheduledCopy"></p>
                             </div>
                         </template>
+                        </div>
                     </div>
                 </template>
 
@@ -257,7 +262,7 @@
             request: null,
             scheduledCopy: null,
             billingMounted: false,
-            startSupportLoading: false,
+            isAdvancingStep: false,
             calendlyInitialized: false,
             calendlyLoading: false,
             calendlyErrorMessage: null,
@@ -306,7 +311,7 @@
             async submitStepOne() {
                 this.error = null;
                 this.loading = true;
-                this.startSupportLoading = true;
+                this.isAdvancingStep = true;
 
                 try {
                     const response = await fetch('{{ route('requests.store') }}', {
@@ -336,7 +341,7 @@
                     });
                 } catch (e) {
                     this.error = e.message || 'Something went wrong.';
-                    this.startSupportLoading = false;
+                    this.isAdvancingStep = false;
                 } finally {
                     this.loading = false;
                 }
@@ -359,13 +364,17 @@
 
                 // Guard: only initialize after request + URL + container exist, and only once.
                 if (!this.request?.id || !url || this.calendlyInitialized) {
-                    this.startSupportLoading = false;
+                    if (this.isAdvancingStep && !this.calendlyInitialized) {
+                        console.warn('Calendly initialization skipped before iframe could be detected.');
+                    }
                     return;
                 }
 
                 const widget = this.$refs.calendlyWidget;
                 if (!(widget instanceof HTMLElement)) {
-                    this.startSupportLoading = false;
+                    if (this.isAdvancingStep) {
+                        console.warn('Calendly widget container missing while advancing steps.');
+                    }
                     return;
                 }
 
@@ -401,15 +410,18 @@
                     this.calendlyInitialized = true;
                     await this.waitForCalendlyIframe(widget);
                     this.calendlyLoading = false;
-                    this.startSupportLoading = false;
+                    this.isAdvancingStep = false;
                 } catch (error) {
                     this.calendlyLoading = false;
-                    this.startSupportLoading = false;
                     this.calendlyInitialized = false;
                     this.calendlyErrorMessage = 'We’re having trouble loading the scheduler right now. Please try again.';
+                    if (this.isAdvancingStep) {
+                        console.warn('Calendly readiness could not be confirmed. Keeping the overlay visible.', error);
+                    }
                 }
             },
             waitForCalendlyIframe(container) {
+                // Only allow the overlay to clear once the Calendly iframe is present in the DOM.
                 return new Promise((resolve, reject) => {
                     let timeoutId = null;
                     const iframe = container.querySelector('iframe');
@@ -552,6 +564,14 @@
             },
             async setupPaymentElement() {
                 try {
+                    const paymentContainer = document.querySelector('#payment-element');
+                    if (!(paymentContainer instanceof HTMLElement)) {
+                        this.paymentError = 'Payment form container is missing.';
+                        this.paymentLoading = false;
+                        console.error('Stripe Payment Element mount failed: #payment-element not found.');
+                        return;
+                    }
+
                     const response = await fetch(`/api/requests/${this.request.id}/payment-intent`, {
                         method: 'POST',
                         headers: {
@@ -583,14 +603,31 @@
                     });
 
                     this.paymentElement = this.stripeElements.create('payment');
-                    this.paymentElement.on('ready', () => {
-                        this.paymentElementReady = true;
-                        this.paymentLoading = false;
+                    const readyPromise = new Promise((resolve, reject) => {
+                        let timeoutId = null;
+
+                        this.paymentElement.on('ready', () => {
+                            if (timeoutId) {
+                                clearTimeout(timeoutId);
+                            }
+                            resolve();
+                        });
+
+                        timeoutId = setTimeout(() => {
+                            reject(new Error('Stripe Payment Element did not report ready state.'));
+                        }, 15000);
                     });
+
                     this.paymentElement.mount('#payment-element');
+
+                    // Stripe mount verification relies on the ready event before enabling payment.
+                    await readyPromise;
+                    this.paymentElementReady = true;
+                    this.paymentLoading = false;
                 } catch (error) {
                     this.paymentError = error.message || 'Unable to start payment.';
                     this.paymentLoading = false;
+                    console.error('Stripe Payment Element failed to mount.', error);
                 }
             },
             init() {
@@ -604,8 +641,9 @@
                     if (value === 'billing') {
                         this.paymentError = null;
                         this.paymentSuccess = this.request?.deposit_status === 'paid' || this.request?.status === 'paid';
-                        this.initBilling();
-                        this.startSupportLoading = false;
+                        this.$nextTick(() => {
+                            this.initBilling();
+                        });
                     }
 
                     if (value === 'book') {
