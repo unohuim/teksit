@@ -55,7 +55,9 @@ class RequestFlowEndpointsTest extends TestCase
             ->andReturn((object) ['id' => 'pi_123', 'client_secret' => 'secret_123']);
 
         $stripe = Mockery::mock('overload:Stripe\\StripeClient');
-        $stripe->paymentIntents = $paymentIntents;
+        $stripe->shouldReceive('__get')
+            ->with('paymentIntents')
+            ->andReturn($paymentIntents);
 
         $this->postJson("/api/requests/{$serviceRequest->id}/payment-intent")
             ->assertOk()
@@ -81,7 +83,9 @@ class RequestFlowEndpointsTest extends TestCase
         $paymentIntents->shouldReceive('create')->never();
 
         $stripe = Mockery::mock('overload:Stripe\\StripeClient');
-        $stripe->paymentIntents = $paymentIntents;
+        $stripe->shouldReceive('__get')
+            ->with('paymentIntents')
+            ->andReturn($paymentIntents);
 
         $this->postJson("/api/requests/{$serviceRequest->id}/payment-intent")
             ->assertOk()
@@ -145,7 +149,9 @@ class RequestFlowEndpointsTest extends TestCase
             ]);
 
         $stripe = Mockery::mock('overload:Stripe\\StripeClient');
-        $stripe->paymentIntents = $paymentIntents;
+        $stripe->shouldReceive('__get')
+            ->with('paymentIntents')
+            ->andReturn($paymentIntents);
 
         $this->postJson("/api/requests/{$serviceRequest->id}/confirm-payment", [
             'payment_intent_id' => 'pi_123',
@@ -177,7 +183,9 @@ class RequestFlowEndpointsTest extends TestCase
             ]);
 
         $stripe = Mockery::mock('overload:Stripe\\StripeClient');
-        $stripe->paymentIntents = $paymentIntents;
+        $stripe->shouldReceive('__get')
+            ->with('paymentIntents')
+            ->andReturn($paymentIntents);
 
         $this->postJson("/api/requests/{$serviceRequest->id}/confirm-payment", [
             'payment_intent_id' => 'pi_123',
@@ -209,7 +217,9 @@ class RequestFlowEndpointsTest extends TestCase
             ]);
 
         $stripe = Mockery::mock('overload:Stripe\\StripeClient');
-        $stripe->paymentIntents = $paymentIntents;
+        $stripe->shouldReceive('__get')
+            ->with('paymentIntents')
+            ->andReturn($paymentIntents);
 
         $this->postJson("/api/requests/{$serviceRequest->id}/confirm-payment", [
             'payment_intent_id' => 'pi_123',
