@@ -31,6 +31,19 @@ class RequestSchedulingTest extends TestCase
             ->assertJsonValidationErrors(['calendly_event_uri', 'calendly_invitee_uri']);
     }
 
+    public function test_scheduled_endpoint_returns_not_found_for_missing_request(): void
+    {
+        $this->postJson('/api/requests/999999/scheduled', [
+            'calendly_event_uri' => 'https://api.calendly.com/scheduled_events/abc123',
+            'calendly_invitee_uri' => 'https://api.calendly.com/scheduled_events/abc123/invitees/def456',
+        ])
+            ->assertStatus(404)
+            ->assertJson([
+                'success' => false,
+                'message' => 'Request not found.',
+            ]);
+    }
+
     public function test_scheduled_endpoint_fetches_calendly_event_and_sets_scheduled_at(): void
     {
         Http::fake([
@@ -152,5 +165,65 @@ class RequestSchedulingTest extends TestCase
             ]);
 
         Http::assertSentCount(1);
+    }
+
+    public function test_scheduled_endpoint_returns_billing_next_step_when_already_scheduled(): void
+    {
+        $serviceRequest = ServiceRequest::factory()->create([
+            'status' => 'scheduled',
+        ]);
+
+        $this->postJson("/api/requests/{$serviceRequest->id}/scheduled", [
+            'calendly_event_uri' => 'https://api.calendly.com/scheduled_events/abc123',
+            'calendly_invitee_uri' => 'https://api.calendly.com/scheduled_events/abc123/invitees/def456',
+        ])
+            ->assertOk()
+            ->assertJson([
+                'success' => true,
+                'status' => 'scheduled',
+                'next_step' => 'billing',
+            ]);
+    }
+
+    public function test_scheduled_endpoint_returns_null_next_step_for_terminal_statuses(): void
+    {
+        $serviceRequest = ServiceRequest::factory()->create([
+            'status' => 'paid',
+        ]);
+
+        $this->postJson("/api/requests/{$serviceRequest->id}/scheduled", [
+            'calendly_event_uri' => 'https://api.calendly.com/scheduled_events/abc123',
+            'calendly_invitee_uri' => 'https://api.calendly.com/scheduled_events/abc123/invitees/def456',
+        ])
+            ->assertOk()
+            ->assertJson([
+                'success' => true,
+                'status' => 'paid',
+                'next_step' => null,
+            ]);
+
+        $serviceRequest->refresh();
+        $this->assertSame('paid', $serviceRequest->status);
+        $this->assertNull($serviceRequest->scheduled_at);
+    }
+
+    public function test_scheduled_endpoint_persists_when_calendly_fails(): void
+    {
+        Http::fake([
+            'https://api.calendly.com/scheduled_events/abc123' => Http::response([], 500),
+        ]);
+
+        $serviceRequest = ServiceRequest::factory()->create([
+            'status' => 'started',
+        ]);
+
+        $this->postJson("/api/requests/{$serviceRequest->id}/scheduled", [
+            'calendly_event_uri' => 'https://api.calendly.com/scheduled_events/abc123',
+            'calendly_invitee_uri' => 'https://api.calendly.com/scheduled_events/abc123/invitees/def456',
+        ])->assertOk();
+
+        $serviceRequest->refresh();
+        $this->assertSame('scheduled', $serviceRequest->status);
+        $this->assertNotNull($serviceRequest->scheduled_at);
     }
 }
