@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -18,6 +19,8 @@ class RequestScheduleController extends Controller
 {
     public function store(Request $request, ServiceRequest $serviceRequest): JsonResponse
     {
+        $serviceRequest->refresh();
+
         $validator = Validator::make($request->all(), [
             'calendly_event_uri' => ['required', 'string'],
             'calendly_invitee_uri' => ['required', 'string'],
@@ -95,13 +98,17 @@ class RequestScheduleController extends Controller
             ]);
         }
 
-        $serviceRequest->update([
-            'calendly_event_uri' => $validated['calendly_event_uri'],
-            'calendly_invitee_uri' => $validated['calendly_invitee_uri'],
-            'calendly_event_uuid' => $eventUuid,
-            'scheduled_at' => $scheduledAt,
-            'status' => 'scheduled',
-        ]);
+        DB::transaction(function () use ($serviceRequest, $validated, $eventUuid, $scheduledAt): void {
+            $serviceRequest->update([
+                'calendly_event_uri' => $validated['calendly_event_uri'],
+                'calendly_invitee_uri' => $validated['calendly_invitee_uri'],
+                'calendly_event_uuid' => $eventUuid,
+                'scheduled_at' => $scheduledAt,
+                'status' => 'scheduled',
+            ]);
+        });
+
+        $serviceRequest->refresh();
 
         if ($serviceRequest->email) {
             try {
