@@ -827,17 +827,17 @@
                             return;
                         }
 
-                        const nextRequest = responseData.request
+                        const normalizedRequest = responseData.request
                             ? self.normalizeRequest(responseData.request)
                             : null;
 
-                        const normalizedRequest = nextRequest ?? {
-                            ...self.request,
-                            status: 'scheduled',
-                        };
+                        if (!normalizedRequest) {
+                            self.error = 'Scheduling could not be saved.';
+                            self.schedulePostInFlight = false;
+                            return;
+                        }
 
                         self.request = normalizedRequest;
-                        self.request.status = 'scheduled';
                         self.schedulePostInFlight = false;
                         self.scheduledCopy = ['scheduled', 'paid'].includes(normalizedRequest.status)
                             ? 'Discovery call scheduled.'

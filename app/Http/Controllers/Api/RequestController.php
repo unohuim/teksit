@@ -44,7 +44,7 @@ class RequestController extends Controller
 
     public function paymentIntent(Request $request, ServiceRequest $serviceRequest): JsonResponse
     {
-        $serviceRequest->refresh();
+        $serviceRequest = ServiceRequest::query()->findOrFail($serviceRequest->id);
 
         if ($serviceRequest->status !== 'scheduled') {
             return response()->json([
